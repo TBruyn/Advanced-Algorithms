@@ -37,6 +37,12 @@ public class TardinessCalculator {
     }
 
     private int calculateCompletionTime(int startingTime, int[] set) {
-        return 0;
+
+        int productionTimeSum = 0;
+        for (int id : set) {
+            productionTimeSum += jobs[0][id];
+        }
+
+        return startingTime + productionTimeSum;
     }
 }
