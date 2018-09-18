@@ -25,15 +25,34 @@ public class TardinessCalculator {
 
     }
 
-    private int calculateTardiness(int[] set) {
-        return 0;
+    private int calculateTardiness(int i, int j, int k, int t) {
+
+        int minimalTardiness = Integer.MAX_VALUE;
+        for (int delta = k; delta < jobs.length; delta++) {
+
+            int kprime = findBiggestJob(getSubset(i, j, k));
+            int cprime = calculateCompletionTime(
+                    t,
+                    getSubset(i, k + delta, kprime));
+
+            int subsetTardiness = calculateTardiness(i, k + delta, kprime, t)
+                    + Integer.max(0, cprime - jobs[1][kprime])
+                    + calculateTardiness(kprime + delta + 1, j, kprime, cprime);
+            if (minimalTardiness > subsetTardiness)
+                minimalTardiness = subsetTardiness;
+        }
+        return minimalTardiness;
+    }
+
+    private int[] calculateDeltas() {
+        return new int[]{};
     }
 
     /*
     S
      */
     private int[] getSubset(int i, int j, int k) {
-        return null;
+        return new int[]{1};
     }
 
     private int calculateCompletionTime(int startingTime, int[] set) {
@@ -45,7 +64,7 @@ public class TardinessCalculator {
         return startingTime + productionTimeSum;
     }
 
-    private int findMaxProcessingTime(int[] set) {
+    private int findBiggestJob(int[] set) {
         int max = 0;
         int idOfMax = 0;
 
