@@ -39,10 +39,23 @@ public class TardinessCalculator {
     private int calculateCompletionTime(int startingTime, int[] set) {
 
         int productionTimeSum = 0;
-        for (int id : set) {
+        for (int id : set)
             productionTimeSum += jobs[0][id];
-        }
 
         return startingTime + productionTimeSum;
+    }
+
+    private int findMaxProcessingTime(int[] set) {
+        int max = 0;
+        int idOfMax = 0;
+
+        for (int id : set) {
+            if (max < jobs[0][id]) {
+                max = jobs[0][id];
+                idOfMax = id;
+            }
+        }
+
+        return idOfMax;
     }
 }
