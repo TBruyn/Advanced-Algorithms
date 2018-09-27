@@ -1,14 +1,17 @@
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
 
 
 public class TardinessCalculator {
+	
+	private static int numJobs = 0;
+    private static int[][] jobs; 	//size = [num_jobs][2], for every job [0] is the length, [1] is the due time
 
-    /*
-    First row is processing time, second row is due dates
-     */
-    private int[][] jobs;
     private int[][] testjobs = new int[][]{
             {98, 314},
             {26, 287},
@@ -17,22 +20,7 @@ public class TardinessCalculator {
             {85, 256}
     };
 
-    public static void main(String args[]) {
-        if (args.length == 0) {
-            System.exit(1);
-        }
-        FileInputStream in;
-        try {
-            in = new FileInputStream(args[1]);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void initJobs() {
-
-    }
-
+    
     private int calculateTardiness(int i, int j, int k, int t) {
 
         if (i == j) return jobs[0][i];
@@ -94,4 +82,40 @@ public class TardinessCalculator {
 
         return idOfMax;
     }
+    
+    public static ProblemInstance readInstance(String filename) { //same as initJob()
+		ProblemInstance instance = null; 
+		
+		try {
+			Scanner sc = new Scanner(new BufferedReader(new FileReader(filename)));
+			if (sc.hasNextInt()) {
+				numJobs = sc.nextInt();
+				jobs = new int[numJobs][2];
+				int nextJobID = 0;
+				
+				while(sc.hasNextInt() && nextJobID < numJobs) {
+					jobs[nextJobID][0] = sc.nextInt();
+					jobs[nextJobID][1] = sc.nextInt();
+					nextJobID++;
+				}
+				
+			}
+			System.out.println("number of jobs: " + numJobs);
+			System.out.println(Arrays.deepToString(jobs));
+			
+			sc.close();
+			instance = new ProblemInstance(numJobs, jobs);
+			
+		} catch (FileNotFoundException e) {
+			System.out.println("File not found");
+			e.printStackTrace();
+		}
+		
+		return instance;
+	}
+    
+    public static void main(String args[]) {
+    	readInstance(args[0]); 	//reads file and initializes "jobs"
+    }
+
 }
