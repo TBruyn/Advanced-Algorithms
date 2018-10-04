@@ -1,14 +1,17 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Dynamic {
 
     private boolean log = false;
 
+    private int maxP;
     private int numJobs;
     private int[][] jobs;
-    private StoreMaxP store;
+    private StoreSkipList store;
 
     private int calls =0;
     private int comps = 0;
@@ -19,8 +22,9 @@ public class Dynamic {
 
         int maxP = 0;
         for(int[] job: jobs) maxP = Math.max(maxP, job[0]);
+        this.maxP = maxP;
 
-        store = new StoreMaxP(numJobs, maxP);
+        store = new StoreSkipList(numJobs, maxP);
 
         Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
@@ -36,9 +40,11 @@ public class Dynamic {
         JobList list = new JobList(jobs, false);
 
         int min = minTard(list,0, numJobs - 1, -1, 0, 0);
+        System.out.println(String.format("Calls: %s, n^5*maxP: %s", calls, Math.pow(numJobs,5) * maxP));
 
-        System.out.println("Lookup iterations: " + store.lookupIterations);
-
+        double n3 = Math.pow(numJobs, 3);
+        System.out.println("Number of ijks: " + store.ijks + "/" + n3 + " or " + Math.round((((float) store.ijks) / n3) * 100) + '%');
+//        System.out.println("Lookup iterations: " + store.lookupIterations);
 //        System.out.println("Completed with " + comps + "/" + calls + " comps/calls: " + Math.round((((float) comps) / calls) * 100) + '%');
 
         return min;
@@ -151,6 +157,27 @@ public class Dynamic {
     }
 
     /**
+     * Which i,j,k are used?
+     *
+     * i, j ->
+     *    1 2 3 4
+     * 1  * * * *
+     * 2    * * *
+     * 3      * *
+     * 4        *
+     *
+     * Can only reduce memory by half
+     *
+     * k: all, but in order of ascending p
+     * Can we optimize this somehow?
+     *
+     * kx: n-x >= |I| >= |J|
+     *
+     *
+     */
+
+
+    /**
      * This class is used for memoization of all computations.
      */
     class Store {
@@ -221,6 +248,70 @@ public class Dynamic {
         }
 
     }
+
+
+
+    /**
+     * This class is used for memoization of all computations.
+     */
+    class StoreHashMap {
+
+        private HashMap<Integer, Integer>[][][] store;
+
+        public StoreHashMap(int size, int maxP) {
+            store = new HashMap[size][size][size];
+        }
+
+        public void set(int i, int j, int k, int t, int tardiness) {
+            if(store[i][j][k] == null)
+                store[i][j][k] = new HashMap<Integer, Integer>();
+
+            store[i][j][k].put(t, tardiness);
+        }
+
+        public int get(int i, int j, int k, int t) {
+            if (store[i][j][k] == null)
+                return -1;
+
+            Integer result = store[i][j][k].get(t);
+            return result == null ? -1 :  result;
+        }
+
+    }
+
+
+
+    /**
+     * This class is used for memoization of all computations.
+     */
+    class StoreSkipList {
+
+        public int ijks = 0;
+        private ConcurrentSkipListMap<Integer, Integer>[][][] store;
+
+        public StoreSkipList(int size, int maxP) {
+            store = new ConcurrentSkipListMap[size][size][size];
+        }
+
+        public void set(int i, int j, int k, int t, int tardiness) {
+            if(store[i][j][k] == null) {
+                ijks++;
+                store[i][j][k] = new ConcurrentSkipListMap<Integer, Integer>();
+            }
+
+            store[i][j][k].put(t, tardiness);
+        }
+
+        public int get(int i, int j, int k, int t) {
+            if (store[i][j][k] == null)
+                return -1;
+
+            Integer result = store[i][j][k].get(t);
+            return result == null ? -1 :  result;
+        }
+
+    }
+
 
 
 }
