@@ -97,7 +97,7 @@ public class Dynamic {
         int min = Integer.MAX_VALUE;
 
         // just take left list?
-        JobList right = list.split(list.start.index); // Runs O(n)
+        JobList right = list.split(kPrime); // Runs O(n)
 
         for (int d = 0; d <= len; d++) { // O( ?? )
 
@@ -139,15 +139,6 @@ public class Dynamic {
             store.set(i,j,k,t,min);
 
         return min;
-    }
-
-    private int[] generateRange(int i, int j) {
-        int size = Math.max(j - i + 1, 0);
-        int[] deltas = new int[size];
-        for (int x = i; x <= j; x++) {
-            deltas[x] = x;
-        }
-        return deltas;
     }
 
     class SortByDeadline implements Comparator<int[]> {
