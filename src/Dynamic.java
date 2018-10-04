@@ -13,7 +13,8 @@ public class Dynamic {
     private int[][] jobs;
     private StoreSkipList store;
 
-    private int calls =0;
+    private int skippedDeltas = 0;
+    private int calls = 0;
     private int comps = 0;
 
     public Dynamic(ProblemInstance instance) {
@@ -21,7 +22,7 @@ public class Dynamic {
         jobs = instance.getJobs();
 
         int maxP = 0;
-        for(int[] job: jobs) maxP = Math.max(maxP, job[0]);
+        for (int[] job : jobs) maxP = Math.max(maxP, job[0]);
         this.maxP = maxP;
 
         store = new StoreSkipList(numJobs, maxP);
@@ -39,11 +40,12 @@ public class Dynamic {
 
         JobList list = new JobList(jobs, false);
 
-        int min = minTard(list,0, numJobs - 1, -1, 0, 0);
-        System.out.println(String.format("Calls: %s, n^5*maxP: %s", calls, Math.pow(numJobs,5) * maxP));
+        int min = minTard(list, 0, numJobs - 1, -1, 0, 0);
+//        System.out.println(String.format("Calls: %s, n^5*maxP: %s", calls, Math.pow(numJobs, 5) * maxP));
 
         double n3 = Math.pow(numJobs, 3);
-        System.out.println("Number of ijks: " + store.ijks + "/" + n3 + " or " + Math.round((((float) store.ijks) / n3) * 100) + '%');
+//        System.out.println("Number of ijks: " + store.ijks + "/" + n3 + " or " + Math.round((((float) store.ijks) / n3) * 100) + '%');
+        System.out.println("| -> Skipped deltas: "+ skippedDeltas);
 //        System.out.println("Lookup iterations: " + store.lookupIterations);
 //        System.out.println("Completed with " + comps + "/" + calls + " comps/calls: " + Math.round((((float) comps) / calls) * 100) + '%');
 
@@ -52,7 +54,7 @@ public class Dynamic {
 
     public int minTard(JobList list, int i, int j, int k, int t, int depth) throws Exception {
 
-        if(depth > 200)
+        if (depth > 200)
             throw new Exception("Depth exceeded max");
 
 //        if(list.start != null && i > list.start.index)
@@ -73,14 +75,14 @@ public class Dynamic {
         calls++;
 
         // Base case: empty set
-        if(list.length == 0)
+        if (list.length == 0)
             return 0;
 
         // Base case: single element
-        if(list.length == 1)
+        if (list.length == 1)
             return Math.max(0, t + jobs[list.start.index][0] - jobs[list.start.index][1]);
 
-        if(k >= 0) {
+        if (k >= 0) {
             int res = store.get(i, j, k, t);
             if (res >= 0) {
                 return res;
@@ -97,46 +99,59 @@ public class Dynamic {
         int min = Integer.MAX_VALUE;
 
         // just take left list?
-        JobList right = list.split(kPrime); // Runs O(n)
+//        JobList right = list.split(kPrime); // Runs O(n)
+        JobList right = list.split(kPrime + 1); // Runs O(n)
+
+//        int dk = jobs[kPrime][1]; // optim.
+//        int dkP = t + list.totalP;
+
+
 
         for (int d = 0; d <= len; d++) { // O( ?? )
 
-            int leftTotalP = list.totalP;
+            int cD = t + list.totalP;
 
-            // Review the left side of the split
-            int TLeft = minTard(list, i, list.end != null ? list.end.index : i, kPrime, t, depth+1);
+            if(right.start == null || !(jobs[right.start.index][1] <= cD)){
 
-            // How tardy is k'?
-            int kPrimeDone = t + leftTotalP + jobs[kPrime][0];
+                int leftTotalP = list.totalP;
 
-            int tardKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
+                // Review the left side of the split
+                int TLeft = minTard(list, i, list.end != null ? list.end.index : i, kPrime, t, depth + 1);
 
-            // Review the right side of the split
-            int TRight = minTard(right, right.start != null ? right.start.index : i, j, kPrime, kPrimeDone, depth+1);
+                // How tardy is k'?
+                int kPrimeDone = t + leftTotalP + jobs[kPrime][0];
 
-            int trd = TLeft + tardKPrime + TRight;
+                int tardKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
-            if (trd < min) {
-                min = trd;
+                // Review the right side of the split
+                int TRight = minTard(right, right.start != null ? right.start.index : i, j, kPrime, kPrimeDone, depth + 1);
+
+                int trd = TLeft + tardKPrime + TRight;
+
+                if (trd < min) {
+                    min = trd;
+                }
+            } else {
+                skippedDeltas++;
             }
 
             // Move over one item
-            if(right.length > 0)
+            if (right.length > 0)
                 list.push(right.removeFirst()); // Runs O(1)
 
         }
 
         // Rejoin lists with k in position?
-        if(right != null)
+        if (right != null)
             list.concat(right); // Runs O(1)
 
         list.insert(kPrime); // Runs O(n), can improve by remembering beforeK node?
 
-        if(min < 0 || min > 100000)
+        if (min < 0 || min > 100000)
             throw new Exception("Min outside reasonable range " + min);
 
-        if(k >= 0)
-            store.set(i,j,k,t,min);
+        if (k >= 0)
+            store.set(i, j, k, t, min);
 
         return min;
     }
@@ -224,7 +239,7 @@ public class Dynamic {
         private int[][][][] store;
 
         public StoreMaxP(int size, int maxP) {
-            store = new int[size][size][size][size*maxP];
+            store = new int[size][size][size][size * maxP];
         }
 
         public void set(int i, int j, int k, int t, int tardiness) {
@@ -241,7 +256,6 @@ public class Dynamic {
     }
 
 
-
     /**
      * This class is used for memoization of all computations.
      */
@@ -254,7 +268,7 @@ public class Dynamic {
         }
 
         public void set(int i, int j, int k, int t, int tardiness) {
-            if(store[i][j][k] == null)
+            if (store[i][j][k] == null)
                 store[i][j][k] = new HashMap<Integer, Integer>();
 
             store[i][j][k].put(t, tardiness);
@@ -265,11 +279,10 @@ public class Dynamic {
                 return -1;
 
             Integer result = store[i][j][k].get(t);
-            return result == null ? -1 :  result;
+            return result == null ? -1 : result;
         }
 
     }
-
 
 
     /**
@@ -285,7 +298,7 @@ public class Dynamic {
         }
 
         public void set(int i, int j, int k, int t, int tardiness) {
-            if(store[i][j][k] == null) {
+            if (store[i][j][k] == null) {
                 ijks++;
                 store[i][j][k] = new ConcurrentSkipListMap<Integer, Integer>();
             }
@@ -298,11 +311,10 @@ public class Dynamic {
                 return -1;
 
             Integer result = store[i][j][k].get(t);
-            return result == null ? -1 :  result;
+            return result == null ? -1 : result;
         }
 
     }
-
 
 
 }
