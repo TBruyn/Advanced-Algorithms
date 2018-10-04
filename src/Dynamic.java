@@ -11,7 +11,7 @@ public class Dynamic {
     private int maxP;
     private int numJobs;
     private int[][] jobs;
-    private StoreSkipList store;
+    private StoreHashMap store;
 
     private int skippedDeltas = 0;
     private int calls = 0;
@@ -25,7 +25,7 @@ public class Dynamic {
         for (int[] job : jobs) maxP = Math.max(maxP, job[0]);
         this.maxP = maxP;
 
-        store = new StoreSkipList(numJobs, maxP);
+        store = new StoreHashMap(numJobs, maxP);
 
         Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
