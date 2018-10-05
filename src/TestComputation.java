@@ -1,5 +1,4 @@
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Scanner;
 
@@ -15,7 +14,7 @@ public class TestComputation {
         Dynamic dynamic = new Dynamic(instance);
 //        Schedule schedule = dynamic.getSchedule();
         try {
-            return dynamic.getMinTard();
+            return dynamic.calculateTardiness();
         } catch (Exception e) {
             e.printStackTrace();
         }

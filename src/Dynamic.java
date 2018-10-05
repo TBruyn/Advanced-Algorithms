@@ -1,84 +1,45 @@
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Dynamic {
 
-    private boolean log = false;
-
-    private int maxP;
-    private int numJobs;
     private int[][] jobs;
-    private StoreHashMapT store;
 
-    private int skippedDeltas = 0;
-    private int calls = 0;
-    private int comps = 0;
+    /**
+     * Store some performance data for evaluation
+     */
+    private MetricsBag metrics;
+
+    /**
+     * Store all calculated results for sub-problems (i,j,k,t)
+     */
+    private Store store;
 
     public Dynamic(ProblemInstance instance) {
-        numJobs = instance.getNumJobs();
+
         jobs = instance.getJobs();
-
-        int maxP = 0;
-        for (int[] job : jobs) maxP = Math.max(maxP, job[0]);
-        this.maxP = maxP;
-
-        store = new StoreHashMapT(numJobs, maxP);
+        store = new Store(jobs.length);
+        metrics = new MetricsBag();
 
         Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
 
-    public int getMinTard() throws Exception {
+    public int calculateTardiness() throws Exception {
 
-//        System.out.println("Jobs: ");
-//        for (int i = 0; i < numJobs; i++) {
-//            System.out.println("- " + i + ": " + jobs[i][0] + ", " + jobs[i][1]);
-//        }
-//        System.out.println("--------------");
-
+        // Create a list of all jobs
         JobList list = new JobList(jobs, false);
 
-        int min = minTard(list, 0, numJobs - 1, -1, 0, 0);
-//        System.out.println(String.format("Calls: %s, n^5*maxP: %s", calls, Math.pow(numJobs, 5) * maxP));
-
-        double n3 = Math.pow(numJobs, 3);
-//        System.out.println("Number of ijks: " + store.ijks + "/" + n3 + " or " + Math.round((((float) store.ijks) / n3) * 100) + '%');
-        System.out.println("| -> Skipped deltas: "+ skippedDeltas);
-//        System.out.println("Lookup iterations: " + store.lookupIterations);
-        System.out.println("Completed with " + comps + "/" + calls + " comps/calls: " + Math.round((((float) comps) / calls) * 100) + '%');
-
-        return min;
+        return calculateTardiness(list, -1, 0, 0);
     }
 
-    public int minTard(JobList list, int i, int j, int k, int t, int depth) throws Exception {
+    public int calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
 
-        if (depth > 200)
-            throw new Exception("Depth exceeded max");
+        metrics.calls++;
 
-//        if(list.start != null && list.start.index != i && i <= j)
-//            throw new Exception("i not equal to start index " + list + " " + String.format("i: %s, j: %s, k: %s, t: %s", i,j,k,t));
-//
-//        if(list.end != null && list.end.index != j && i <= j)
-//            throw new Exception("j not equal to end index " + list + " " + String.format("i: %s, j: %s, k: %s, t: %s", i,j,k,t));
-
-//        if(list.start != null && i > list.start.index)
-//            throw new Exception("i > list.start.index");
-//        if(list.end != null && j < list.end.index)
-//            throw new Exception("j < list.end.index");
-
-//            String list0 = list.toString();
-        int result = _minTard(list, i, j, k, t, depth);
-
-//        if(!list.toString().equals(list0))
-//            throw new Exception("Call manipulated list");
-        return result;
-    }
-
-    public int _minTard(JobList list, int i, int j, int k, int t, int depth) throws Exception {
-
-        calls++;
+        // Limit i and j to the remaining elements in the list
+        int i = list.start.index;
+        int j = list.end.index;
 
         // Base case: empty set
         if (list.length == 0)
@@ -88,84 +49,75 @@ public class Dynamic {
         if (list.length == 1)
             return Math.max(0, t + jobs[list.start.index][0] - jobs[list.start.index][1]);
 
+        // Check whether this sub-problem has been calculated before
         if (k >= 0) {
             int res = store.get(i, j, k, t);
-            if (res >= 0) {
+            if (res >= 0)
                 return res;
-            }
+        } else {
+            metrics.computations++;
         }
 
-        comps++;
-
         // Take the largest job from the list
+        // - list: no longer contains kPrime
         int kPrime = list.extractMaxP(); // Runs O(n)
 
-        int len = list.length; // store
+        int lowestTardiness = Integer.MAX_VALUE;
 
-        int min = Integer.MAX_VALUE;
+        // Original length of the list
+        int originalLength = list.length;
 
-        // just take left list?
-//        JobList right = list.split(kPrime); // Runs O(n)
-        JobList right = list.split(kPrime + 1); // Runs O(n)
+        // Split the list at k', results in:
+        // - list: the left side of the split
+        // - right: the right side of the split
+        JobList right = list.split(kPrime); // Runs O(n)
 
-//        int dk = jobs[kPrime][1]; // optim.
-//        int dkP = t + list.totalP;
+        for (int d = 0; d <= originalLength; d++) {
 
+            // The time until the left hand side is complete.
+            int leftComplete = t + list.totalP;
 
+            // Only compute when d_x > leftComplete, for x the first element in `right`
+            if (right.start == null || !(jobs[right.start.index][1] <= leftComplete)) {
 
-        for (int d = 0; d <= len; d++) { // O( ?? )
+                // Recurse over the left list (if not empty)
+                int tardinessLeft = list.length == 0 ? 0 :
+                        calculateTardiness(list, kPrime, t, depth + 1);
 
-            int cD = t + list.totalP;
+                int kPrimeDone = leftComplete + jobs[kPrime][0];
+                int tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
-            if(right.start == null || !(jobs[right.start.index][1] <= cD)){
+                // Recurse over the right list (if not empty)
+                int tardinessRight = right.length == 0 ? 0 :
+                        calculateTardiness(right, kPrime, kPrimeDone, depth + 1);
 
-                int leftTotalP = list.totalP;
+                int total = tardinessLeft + tardinessKPrime + tardinessRight;
 
-                // Review the left side of the split
-                int leftI = list.start == null ? i : list.start.index;
-                int leftJ = list.end != null ? list.end.index : i;
-                int TLeft = minTard(list, leftI, leftJ, kPrime, t, depth + 1);
-
-                // How tardy is k'?
-                int kPrimeDone = t + leftTotalP + jobs[kPrime][0];
-
-                int tardKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
-
-                // Review the right side of the split
-                int rightI = right.start != null ? right.start.index : i;
-                int rightJ = right.end == null ? j : right.end.index;
-                int TRight = minTard(right, rightI, rightJ, kPrime, kPrimeDone, depth + 1);
-
-                int trd = TLeft + tardKPrime + TRight;
-
-                if (trd < min) {
-                    min = trd;
+                if (total < lowestTardiness) {
+                    lowestTardiness = total;
                 }
-            } else {
-                skippedDeltas++;
             }
 
-            // Move over one item
+            // Move over one item from the right to the left list
             if (right.length > 0)
                 list.push(right.removeFirst()); // Runs O(1)
 
         }
 
-        // Rejoin lists with k in position?
+        // Rejoin lists with k in position
         if (right != null)
             list.concat(right); // Runs O(1)
 
         list.insert(kPrime); // Runs O(n), can improve by remembering beforeK node?
 
-        if (min < 0 || min > 100000)
-            throw new Exception("Min outside reasonable range " + min);
-
+        // Store the result for this computation, except the root (k = -1)
         if (k >= 0)
-            store.set(i, j, k, t, min);
+            store.set(i, j, k, t, lowestTardiness);
 
-        return min;
+        return lowestTardiness;
     }
 
+    /** Sort the 2D jobs array by deadline (2nd element of each pair) */
     class SortByDeadline implements Comparator<int[]> {
         public int compare(int[] a, int[] b) {
             return a[1] - b[1];
@@ -173,107 +125,13 @@ public class Dynamic {
     }
 
     /**
-     * Which i,j,k are used?
-     *
-     * i, j ->
-     *    1 2 3 4
-     * 1  * * * *
-     * 2    * * *
-     * 3      * *
-     * 4        *
-     *
-     * Can only reduce memory by half
-     *
-     * k: all, but in order of ascending p
-     * Can we optimize this somehow?
-     *
-     * kx: n-x >= |I| >= |J|
-     *
-     *
-     */
-
-
-    /**
      * This class is used for memoization of all computations.
      */
     class Store {
 
-        public int lookupIterations = 0;
-
-        private ArrayList<Pair>[][][] store;
-
-        public Store(int size) {
-            store = new ArrayList[size][size][size];
-        }
-
-        public void set(int i, int j, int k, int t, int tardiness) {
-            if (store[i][j][k] == null) {
-                store[i][j][k] = new ArrayList<Pair>();
-            }
-            store[i][j][k].add(new Pair(t, tardiness));
-        }
-
-        public int get(int i, int j, int k, int t) {
-            if (store[i][j][k] == null)
-                return -1;
-            ArrayList<Pair> pairs = store[i][j][k];
-
-            for (Pair pair : pairs) {
-                lookupIterations++;
-                if (pair.time == t)
-                    return pair.tardiness;
-            }
-            return -1;
-        }
-
-
-        class Pair {
-            public int time;
-            public int tardiness;
-
-            public Pair(int time, int tardiness) {
-                this.time = time;
-                this.tardiness = tardiness;
-            }
-        }
-    }
-
-
-    /**
-     * This class is used for memoization of all computations.
-     */
-    class StoreMaxP {
-
-        public int lookupIterations = 0;
-
-        private int[][][][] store;
-
-        public StoreMaxP(int size, int maxP) {
-            store = new int[size][size][size][size * maxP];
-        }
-
-        public void set(int i, int j, int k, int t, int tardiness) {
-            store[i][j][k][t] = tardiness + 1;
-        }
-
-        public int get(int i, int j, int k, int t) {
-            if (store[i][j][k][t] == 0)
-                return -1;
-
-            return store[i][j][k][t] - 1;
-        }
-
-    }
-
-
-    /**
-     * This class is used for memoization of all computations.
-     */
-    class StoreHashMapT {
-
         private HashMap<Integer, Integer>[][][] store;
 
-        public StoreHashMapT(int size, int maxP) {
+        public Store(int size) {
             store = new HashMap[size][size][size];
         }
 
@@ -284,6 +142,7 @@ public class Dynamic {
             store[i][j][k].put(t, tardiness);
         }
 
+        /** Return the tardiness of problem (i,j,k,t) or -1 if not available */
         public int get(int i, int j, int k, int t) {
             if (store[i][j][k] == null)
                 return -1;
@@ -294,68 +153,10 @@ public class Dynamic {
 
     }
 
-    /**
-     * This class is used for memoization of all computations.
-     */
-    class StoreHashMapKT {
-
-        private HashMap<Integer, HashMap<Integer, Integer>>[][] store;
-
-        public StoreHashMapKT(int size, int maxP) {
-            store = new HashMap[size][size];
-        }
-
-        public void set(int i, int j, int k, int t, int tardiness) {
-            if (store[i][j] == null)
-                store[i][j] = new HashMap<>();
-            if(!store[i][j].containsKey(k))
-                store[i][j].put(k, new HashMap<>());
-
-            store[i][j].get(k).put(t, tardiness);
-        }
-
-        public int get(int i, int j, int k, int t) {
-            if (store[i][j] == null ||
-                    !store[i][j].containsKey(k) ||
-                    !store[i][j].get(k).containsKey(t))
-                return -1;
-
-            Integer result = store[i][j].get(k).get(t);
-            return result == null ? -1 : result;
-        }
-
-    }
-
-
-    /**
-     * This class is used for memoization of all computations.
-     */
-    class StoreSkipList {
-
-        public int ijks = 0;
-        private ConcurrentSkipListMap<Integer, Integer>[][][] store;
-
-        public StoreSkipList(int size, int maxP) {
-            store = new ConcurrentSkipListMap[size][size][size];
-        }
-
-        public void set(int i, int j, int k, int t, int tardiness) {
-            if (store[i][j][k] == null) {
-                ijks++;
-                store[i][j][k] = new ConcurrentSkipListMap<Integer, Integer>();
-            }
-
-            store[i][j][k].put(t, tardiness);
-        }
-
-        public int get(int i, int j, int k, int t) {
-            if (store[i][j][k] == null)
-                return -1;
-
-            Integer result = store[i][j][k].get(t);
-            return result == null ? -1 : result;
-        }
-
+    /** Keep some metrics for performance tracking */
+    class MetricsBag {
+        public int calls;
+        public int computations;
     }
 
 
