@@ -1,5 +1,7 @@
 public class JobList {
 
+    public boolean checkInv = false;
+
     public Node start;
     public Node end;
     public int[][] jobs;
@@ -8,67 +10,79 @@ public class JobList {
     public int length = 0;
     public int maxP = 0;
 
-    /** Runs empty ? O(1) : O(n)  */
-    public JobList(int[][] jobs, boolean empty) throws  Exception {
+    /**
+     * Runs empty ? O(1) : O(n)
+     */
+    public JobList(int[][] jobs, boolean empty) throws Exception {
         this.jobs = jobs;
-        if(!empty)
+        if (!empty)
             for (int x = 0; x < jobs.length; x++) this.push(x);
-        checkLength();
+        checkInvariant();
     }
 
-    public JobList(int[][] jobs, Node start, Node end, int length, int totalP) throws  Exception {
+    public JobList(int[][] jobs, Node start, Node end, int length, int totalP) throws Exception {
         this.jobs = jobs;
         this.start = start;
         this.end = end;
         this.length = length;
         this.totalP = totalP;
 
-        checkLength();
+        checkInvariant();
     }
 
-    public void checkLength() throws Exception {
-//        int i = 0;
-//        int p = 0;
-//        int ind = -1;
-//        Node curr = start;
-//        while(curr != null) {
-//            i += 1;
-//            p += jobs[curr.index][0];
-//
-//            if(curr.index <= ind)
-//                throw new Exception("Invariant: indices in wrong order");
-//            ind = curr.index;
-//
-//            curr = curr.next;
-//        }
-//        if(i != length)
-//            throw new Exception("Invariant: length is incorrect");
-//
-//        if(p != totalP)
-//            throw new Exception("Invariant: totalP is incorrect");
-//
-//        if(length != 0 && start == null )
-//            throw new Exception("Invarian: start null, length > 0");
-//
-//        if(length != 0 && end == null )
-//            throw new Exception("Invarian: end null, length > 0");
-//
-//        if(end != null && end.next != null)
-//            throw new Exception("Invarian: end.next != null");
-//
-//        if(length == 1 && start != end)
-//            throw new Exception("Invarian: start != end && length == 1");
+    /**
+     * Checks the invariants of the list
+     * @throws Exception
+     */
+    public void checkInvariant() throws Exception {
+        if (checkInv) {
 
+            int i = 0;
+            int p = 0;
+            int ind = -1;
+            Node curr = start;
+            while (curr != null) {
+                i += 1;
+                p += jobs[curr.index][0];
 
+                if (curr.index <= ind)
+                    throw new Exception("Invariant: indices in wrong order");
+                ind = curr.index;
+
+                curr = curr.next;
+            }
+            if (i != length)
+                throw new Exception("Invariant: length is incorrect");
+
+            if (p != totalP)
+                throw new Exception("Invariant: totalP is incorrect");
+
+            if (length != 0 && start == null)
+                throw new Exception("Invarian: start null, length > 0");
+
+            if (length != 0 && end == null)
+                throw new Exception("Invarian: end null, length > 0");
+
+            if (end != null && end.next != null)
+                throw new Exception("Invarian: end.next != null");
+
+            if (length == 1 && start != end)
+                throw new Exception("Invarian: start != end && length == 1");
+
+        }
     }
 
-    /** Runs O(1) */
-    public Node push(int x) throws Exception{
+    /**
+     * Runs O(1)
+     */
+    public Node push(int x) throws Exception {
         Node n = new Node(x);
         return push(n);
     }
 
-    /** Runs O(1) */
+    /**
+     * Runs O(1)
+     */
     public Node push(Node n) throws Exception {
         if (length == 0) {
             start = end = n;
@@ -81,20 +95,22 @@ public class JobList {
         length++;
         totalP += jobs[n.index][0];
         maxP = Math.max(maxP, jobs[n.index][0]); // store the maximum P
-        checkLength();
+        checkInvariant();
         return n;
     }
 
-    /** Runs O(n) */
+    /**
+     * Runs O(n)
+     */
     public Node insert(int x) throws Exception {
 
-        if(length == 0)
+        if (length == 0)
             return this.push(x);
 
         Node newNode = new Node(x);
         Node current = start;
 
-        if(current.index > x) {
+        if (current.index > x) {
             newNode.join(start);
             start = newNode;
         } else {
@@ -113,14 +129,16 @@ public class JobList {
         length++;
         totalP += jobs[x][0];
 
-        checkLength();
+        checkInvariant();
         return newNode;
     }
 
-    /** Runs O(n) */
-    public int extractMaxP() throws  Exception {
+    /**
+     * Runs O(n)
+     */
+    public int extractMaxP() throws Exception {
 
-        if(length == 0)
+        if (length == 0)
             throw new Exception("No maxP in empty list");
 
         Node current = start;
@@ -132,10 +150,10 @@ public class JobList {
         Node beforeK = null;
 
         // Find k (first node with max processing time)
-        while(current != null) {
+        while (current != null) {
             currP = jobs[current.index][0];
 
-            if(currP > maxP) {
+            if (currP > maxP) {
                 k = current;
                 beforeK = prev;
                 maxP = currP;
@@ -148,38 +166,42 @@ public class JobList {
         // Remove k
         remove(beforeK, k); // O(1)
 
-        checkLength();
+        checkInvariant();
         return k.index;
     }
 
-    /** Runs O(1) */
+    /**
+     * Runs O(1)
+     */
     private void remove(Node predecessor, Node target) throws Exception { // List must contain these!
-        if(predecessor == null) // start
+        if (predecessor == null) // start
             start = target.next;
         else
             predecessor.join(target.next);
 
-        if(target.next == null) // end
+        if (target.next == null) // end
             end = predecessor;
 
         length--;
         totalP -= jobs[target.index][0];
 
-        checkLength();
+        checkInvariant();
     }
 
-    /** Runs O(1) */
-    public JobList concat(JobList list) throws  Exception {
-        if(list == null)
+    /**
+     * Runs O(1)
+     */
+    public JobList concat(JobList list) throws Exception {
+        if (list == null)
             throw new Exception("Right list cannot be null");
 
-        if(length == 0) { // |left| is 0, copy right list
+        if (length == 0) { // |left| is 0, copy right list
             start = list.start;
             end = list.end;
             length = list.length;
             totalP = list.totalP;
 
-        } else if(list.length > 0) { //
+        } else if (list.length > 0) { //
             end.join(list.start);
             end = list.end;
 
@@ -187,12 +209,14 @@ public class JobList {
             totalP += list.totalP;
         }
 
-        checkLength();
+        checkInvariant();
         return this;
     }
 
-    /** Runs O(n) */
-    public JobList split(int x) throws  Exception{
+    /**
+     * Runs O(n)
+     */
+    public JobList split(int x) throws Exception {
         int lengthL = 0;
         int totalPL = 0;
 
@@ -210,7 +234,7 @@ public class JobList {
                         totalP - totalPL); // O(1)
 
                 // Correct the left list
-                if(current == start) {
+                if (current == start) {
                     start = null;
                     end = null;
                 } else {
@@ -228,16 +252,18 @@ public class JobList {
             prev = current;
             current = current.next;
         }
-        checkLength();
+        checkInvariant();
         return new JobList(jobs, true); // O(1)
     }
 
-    /** Runs O(1) */
-    public Node removeFirst()throws  Exception {
-        if(this.length == 0)
+    /**
+     * Runs O(1)
+     */
+    public Node removeFirst() throws Exception {
+        if (this.length == 0)
             throw new Exception("List is empty");
 
-        if(this.length == 1)
+        if (this.length == 1)
             this.end = null;
 
         Node first = start;
@@ -246,7 +272,7 @@ public class JobList {
         totalP -= jobs[first.index][0];
 
         first.join(null);
-        checkLength();
+        checkInvariant();
         return first;
     }
 
@@ -258,7 +284,9 @@ public class JobList {
             this.index = index;
         }
 
-        /** Runs O(1) */
+        /**
+         * Runs O(1)
+         */
         public Node join(Node n) {
             next = n;
             return n;
@@ -268,7 +296,7 @@ public class JobList {
     public String toString() {
         String s = "{";
         Node current = start;
-        while(current != null) {
+        while (current != null) {
             s += current.index + ",";
             current = current.next;
         }
