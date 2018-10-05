@@ -22,7 +22,7 @@ public class TestComputation {
         return -1000;
     }
 
-    public static void testInstance (String src, int answer, boolean doGreedy, boolean doDynamic) {
+    public static void testInstance (String src, int answer, boolean doGreedy, boolean doDynamic) throws  Exception {
 
         ProblemInstance instance = ComputeTardiness.readInstance(src);
         System.out.println(src);
@@ -32,8 +32,10 @@ public class TestComputation {
             int result = runGreedy(instance);
             long t1 = System.nanoTime();
             long time = (t1 - t0) / 1000000000;
-            String status = (result == answer) ? "ok" : "should be " + answer;
-            System.out.println("- Greedy: " + result + "; " + status + "; " + time + " sec");
+            if(result != answer)
+                throw new Exception("- Greedy: Wrong answer: " + result + " should be " + answer );
+            else
+                System.out.println("- Greedy: " + time + " sec");
         }
 
         if(doDynamic) {
@@ -41,16 +43,18 @@ public class TestComputation {
             int result = runDynamic(instance);
             long t1 = System.nanoTime();
             long time = (t1 - t0) / 1000000000;
-            String status = (result == answer) ? "ok" : " should be " + answer;
-            System.out.println("- Dynamic: " + result + "; " + status + "; " + time + " sec");
+            if(result != answer)
+                throw new Exception("- Dynamic: Wrong answer: " + result +" should be " + answer );
+            else
+                System.out.println("- Dynamic: " + time + " sec");
         }
 
     }
 
     public static void main (String args[]) {
 
-        if(args.length != 5) {
-            System.out.println("Usage: path/to/answer.file path/to/instance/dir doGreedy doBestFirst limit");
+        if(args.length != 6) {
+            System.out.println("Usage: path/to/answer.file path/to/instance/dir doGreedy doBestFirst start limit");
             System.out.println("  where doGreedy, doDynamic = 0|1");
             return;
         }
@@ -59,20 +63,23 @@ public class TestComputation {
         String instanceRoot = args[1];
         boolean doGreedy = args[2].equals("1");
         boolean doDynamic = args[3].equals("1");
-        int limit = Integer.parseInt(args[4]);
+        int start = Integer.parseInt(args[4]);
+        int limit = Integer.parseInt(args[5]);
         int x = 0;
 
         try {
             Scanner sc = new Scanner(new BufferedReader(new FileReader(answersFile)));
 
-            while(sc.hasNext() && x++ < limit) {
-
+            while(sc.hasNext() && x++ < (start + limit)) {
                 String path = sc.next();
                 int ans = sc.nextInt();
-                testInstance(instanceRoot + '/' + path, ans, doGreedy, doDynamic);
+
+                if(x >= start) {
+                    testInstance(instanceRoot + '/' + path, ans, doGreedy, doDynamic);
+                }
             }
 
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

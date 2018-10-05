@@ -11,7 +11,7 @@ public class Dynamic {
     private int maxP;
     private int numJobs;
     private int[][] jobs;
-    private StoreHashMap store;
+    private StoreHashMapT store;
 
     private int skippedDeltas = 0;
     private int calls = 0;
@@ -25,7 +25,7 @@ public class Dynamic {
         for (int[] job : jobs) maxP = Math.max(maxP, job[0]);
         this.maxP = maxP;
 
-        store = new StoreHashMap(numJobs, maxP);
+        store = new StoreHashMapT(numJobs, maxP);
 
         Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
@@ -47,7 +47,7 @@ public class Dynamic {
 //        System.out.println("Number of ijks: " + store.ijks + "/" + n3 + " or " + Math.round((((float) store.ijks) / n3) * 100) + '%');
         System.out.println("| -> Skipped deltas: "+ skippedDeltas);
 //        System.out.println("Lookup iterations: " + store.lookupIterations);
-//        System.out.println("Completed with " + comps + "/" + calls + " comps/calls: " + Math.round((((float) comps) / calls) * 100) + '%');
+        System.out.println("Completed with " + comps + "/" + calls + " comps/calls: " + Math.round((((float) comps) / calls) * 100) + '%');
 
         return min;
     }
@@ -56,6 +56,12 @@ public class Dynamic {
 
         if (depth > 200)
             throw new Exception("Depth exceeded max");
+
+//        if(list.start != null && list.start.index != i && i <= j)
+//            throw new Exception("i not equal to start index " + list + " " + String.format("i: %s, j: %s, k: %s, t: %s", i,j,k,t));
+//
+//        if(list.end != null && list.end.index != j && i <= j)
+//            throw new Exception("j not equal to end index " + list + " " + String.format("i: %s, j: %s, k: %s, t: %s", i,j,k,t));
 
 //        if(list.start != null && i > list.start.index)
 //            throw new Exception("i > list.start.index");
@@ -116,7 +122,9 @@ public class Dynamic {
                 int leftTotalP = list.totalP;
 
                 // Review the left side of the split
-                int TLeft = minTard(list, i, list.end != null ? list.end.index : i, kPrime, t, depth + 1);
+                int leftI = list.start == null ? i : list.start.index;
+                int leftJ = list.end != null ? list.end.index : i;
+                int TLeft = minTard(list, leftI, leftJ, kPrime, t, depth + 1);
 
                 // How tardy is k'?
                 int kPrimeDone = t + leftTotalP + jobs[kPrime][0];
@@ -124,7 +132,9 @@ public class Dynamic {
                 int tardKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
                 // Review the right side of the split
-                int TRight = minTard(right, right.start != null ? right.start.index : i, j, kPrime, kPrimeDone, depth + 1);
+                int rightI = right.start != null ? right.start.index : i;
+                int rightJ = right.end == null ? j : right.end.index;
+                int TRight = minTard(right, rightI, rightJ, kPrime, kPrimeDone, depth + 1);
 
                 int trd = TLeft + tardKPrime + TRight;
 
@@ -259,11 +269,11 @@ public class Dynamic {
     /**
      * This class is used for memoization of all computations.
      */
-    class StoreHashMap {
+    class StoreHashMapT {
 
         private HashMap<Integer, Integer>[][][] store;
 
-        public StoreHashMap(int size, int maxP) {
+        public StoreHashMapT(int size, int maxP) {
             store = new HashMap[size][size][size];
         }
 
@@ -279,6 +289,38 @@ public class Dynamic {
                 return -1;
 
             Integer result = store[i][j][k].get(t);
+            return result == null ? -1 : result;
+        }
+
+    }
+
+    /**
+     * This class is used for memoization of all computations.
+     */
+    class StoreHashMapKT {
+
+        private HashMap<Integer, HashMap<Integer, Integer>>[][] store;
+
+        public StoreHashMapKT(int size, int maxP) {
+            store = new HashMap[size][size];
+        }
+
+        public void set(int i, int j, int k, int t, int tardiness) {
+            if (store[i][j] == null)
+                store[i][j] = new HashMap<>();
+            if(!store[i][j].containsKey(k))
+                store[i][j].put(k, new HashMap<>());
+
+            store[i][j].get(k).put(t, tardiness);
+        }
+
+        public int get(int i, int j, int k, int t) {
+            if (store[i][j] == null ||
+                    !store[i][j].containsKey(k) ||
+                    !store[i][j].get(k).containsKey(t))
+                return -1;
+
+            Integer result = store[i][j].get(k).get(t);
             return result == null ? -1 : result;
         }
 
