@@ -23,8 +23,8 @@ public class TestComputation {
 
     public static void testInstance (String src, int answer, boolean doGreedy, boolean doDynamic) throws  Exception {
 
-        ProblemInstance instance = ComputeTardiness.readInstance(src);
-        System.out.println(src);
+        ProblemInstance instance = ComputeTardiness.readInstance(src+ ".dat");
+        System.out.println(src + ".dat");
 
         if(doGreedy) {
             long t0 = System.nanoTime();

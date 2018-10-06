@@ -30,10 +30,10 @@ public class Dynamic {
         // Create a list of all jobs
         JobList list = new JobList(jobs, false);
 
-        return calculateTardiness(list, -1, 0, 0);
+        return calculateTardiness(list, -1, 0);
     }
 
-    public int calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
+    public int calculateTardiness(JobList list, int k, int t) throws Exception {
 
         metrics.calls++;
 
@@ -54,9 +54,9 @@ public class Dynamic {
             int res = store.get(i, j, k, t);
             if (res >= 0)
                 return res;
-        } else {
-            metrics.computations++;
         }
+
+        metrics.computations++;
 
         // Take the largest job from the list
         // - list: no longer contains kPrime
@@ -82,14 +82,14 @@ public class Dynamic {
 
                 // Recurse over the left list (if not empty)
                 int tardinessLeft = list.length == 0 ? 0 :
-                        calculateTardiness(list, kPrime, t, depth + 1);
+                        calculateTardiness(list, kPrime, t);
 
                 int kPrimeDone = leftComplete + jobs[kPrime][0];
                 int tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
                 // Recurse over the right list (if not empty)
                 int tardinessRight = right.length == 0 ? 0 :
-                        calculateTardiness(right, kPrime, kPrimeDone, depth + 1);
+                        calculateTardiness(right, kPrime, kPrimeDone);
 
                 int total = tardinessLeft + tardinessKPrime + tardinessRight;
 
@@ -117,7 +117,9 @@ public class Dynamic {
         return lowestTardiness;
     }
 
-    /** Sort the 2D jobs array by deadline (2nd element of each pair) */
+    /**
+     * Sort the 2D jobs array by deadline (2nd element of each pair)
+     */
     class SortByDeadline implements Comparator<int[]> {
         public int compare(int[] a, int[] b) {
             return a[1] - b[1];
@@ -142,7 +144,9 @@ public class Dynamic {
             store[i][j][k].put(t, tardiness);
         }
 
-        /** Return the tardiness of problem (i,j,k,t) or -1 if not available */
+        /**
+         * Return the tardiness of problem (i,j,k,t) or -1 if not available
+         */
         public int get(int i, int j, int k, int t) {
             if (store[i][j][k] == null)
                 return -1;
@@ -153,7 +157,9 @@ public class Dynamic {
 
     }
 
-    /** Keep some metrics for performance tracking */
+    /**
+     * Keep some metrics for performance tracking
+     */
     class MetricsBag {
         public int calls;
         public int computations;
