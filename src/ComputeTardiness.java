@@ -36,13 +36,13 @@ public class ComputeTardiness {
 	// reads a problem, and outputs the result of both greedy and best-first
     public static void main (String args[]) {
 		ProblemInstance instance = readInstance(args[0]);
-		
-		Greedy greedy = new Greedy(instance);
-		Schedule greedySchedule = greedy.getSchedule();
-		System.out.println(greedySchedule.getTardiness());
-		
-		BestFirst bestFirst = new BestFirst(instance);
-		Schedule bestFirstSchedule = bestFirst.getSchedule();
-		System.out.println(bestFirstSchedule.getTardiness());
+
+		Dynamic dynamic = new Dynamic(instance);
+
+		try {
+			System.out.println(dynamic.calculateTardiness());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

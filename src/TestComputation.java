@@ -30,22 +30,24 @@ public class TestComputation {
             long t0 = System.nanoTime();
             int result = runGreedy(instance);
             long t1 = System.nanoTime();
-            long time = (t1 - t0) / 1000000000;
+            long time = (t1 - t0) / 1000000;
             if(result != answer)
-                throw new Exception("- Greedy: Wrong answer: " + result + " should be " + answer );
-            else
-                System.out.println("- Greedy: " + time + " sec");
+                System.out.println("- Greedy: Wrong answer: " + result + " should be " + answer );
+//            else
+                System.out.println("- Greedy: " + time + " ms");
         }
+
+        Thread.sleep(2000);
 
         if(doDynamic) {
             long t0 = System.nanoTime();
             int result = runDynamic(instance);
             long t1 = System.nanoTime();
-            long time = (t1 - t0) / 1000000000;
+            long time = (t1 - t0) / 1000000;
             if(result != answer)
                 throw new Exception("- Dynamic: Wrong answer: " + result +" should be " + answer );
             else
-                System.out.println("- Dynamic: " + time + " sec");
+                System.out.println("- Dynamic: " + time + " ms");
         }
 
     }
@@ -74,7 +76,9 @@ public class TestComputation {
                 int ans = sc.nextInt();
 
                 if(x >= start) {
+                    Thread.sleep(2000);
                     testInstance(instanceRoot + '/' + path, ans, doGreedy, doDynamic);
+                    Thread.sleep(2000);
                 }
             }
 

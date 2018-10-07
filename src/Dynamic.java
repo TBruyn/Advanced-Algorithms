@@ -30,12 +30,15 @@ public class Dynamic {
         // Create a list of all jobs
         JobList list = new JobList(jobs, false);
 
-        return calculateTardiness(list, -1, 0);
+        return calculateTardiness(list, -1, 0, 0);
     }
 
-    public int calculateTardiness(JobList list, int k, int t) throws Exception {
+    public int calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
 
         metrics.calls++;
+
+        if(depth > 200)
+            throw new Exception("Depth > 200");
 
         // Limit i and j to the remaining elements in the list
         int i = list.start.index;
@@ -58,19 +61,23 @@ public class Dynamic {
 
         metrics.computations++;
 
+//        if(metrics.computations % 10000 == 0)
+//            System.out.println((float) metrics.computations / metrics.calls * 100);
+
         // Take the largest job from the list
         // - list: no longer contains kPrime
         int kPrime = list.extractMaxP(); // Runs O(n)
 
         int lowestTardiness = Integer.MAX_VALUE;
 
-        // Original length of the list
-        int originalLength = list.length;
 
         // Split the list at k', results in:
         // - list: the left side of the split
         // - right: the right side of the split
         JobList right = list.split(kPrime); // Runs O(n)
+
+        // Original length of the list
+        int originalLength = right.length;
 
         for (int d = 0; d <= originalLength; d++) {
 
@@ -82,14 +89,14 @@ public class Dynamic {
 
                 // Recurse over the left list (if not empty)
                 int tardinessLeft = list.length == 0 ? 0 :
-                        calculateTardiness(list, kPrime, t);
+                        calculateTardiness(list, kPrime, t, depth+1);
 
                 int kPrimeDone = leftComplete + jobs[kPrime][0];
                 int tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
                 // Recurse over the right list (if not empty)
                 int tardinessRight = right.length == 0 ? 0 :
-                        calculateTardiness(right, kPrime, kPrimeDone);
+                        calculateTardiness(right, kPrime, kPrimeDone, depth+1);
 
                 int total = tardinessLeft + tardinessKPrime + tardinessRight;
 
@@ -105,8 +112,8 @@ public class Dynamic {
         }
 
         // Rejoin lists with k in position
-        if (right != null)
-            list.concat(right); // Runs O(1)
+//        if (right != null)
+//            list.concat(right); // Runs O(1)
 
         list.insert(kPrime); // Runs O(n), can improve by remembering beforeK node?
 
