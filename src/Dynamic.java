@@ -32,7 +32,7 @@ public class Dynamic {
 
         int result = calculateTardiness(list, -1, 0, 0);
 
-        System.out.println(metrics.calls + "," + metrics.computations);
+        System.out.println(metrics.calls + "," + metrics.computations + "," + metrics.depth);
 
         return result;
     }
@@ -173,6 +173,7 @@ public class Dynamic {
      * Keep some metrics for performance tracking
      */
     class MetricsBag {
+        public int depth;
         public int calls;
         public int computations;
     }
