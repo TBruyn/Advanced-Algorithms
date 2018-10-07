@@ -78,7 +78,7 @@ public class Dynamic {
             int leftComplete = t + list.totalP;
 
             // Only compute when d_x > leftComplete, for x the first element in `right`
-            if (right.start == null || !(jobs[right.start.index][1] <= leftComplete)) {
+            if (right.start == null || jobs[right.start.index][1] > leftComplete) {
 
                 // Recurse over the left list (if not empty)
                 int tardinessLeft = list.length == 0 ? 0 :
