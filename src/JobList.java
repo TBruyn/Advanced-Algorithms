@@ -2,26 +2,33 @@ public class JobList {
 
     public boolean checkInv = false;
 
+    public Node[] Nodes;
+
     public Node start;
     public Node end;
-    public int[][] jobs;
 
     public int totalP = 0;
     public int length = 0;
     public int maxP = 0;
 
+    public static JobList fromArray (int [][] jobs) throws Exception {
+        Node[] Nodes = new Node[jobs.length];
+        for(int x = 0; x < jobs.length; x++) Nodes[x] = new Node(x, jobs[x][0], jobs[x][1]);
+        return new JobList(Nodes, false);
+    }
+
     /**
      * Runs empty ? O(1) : O(n)
      */
-    public JobList(int[][] jobs, boolean empty) throws Exception {
-        this.jobs = jobs;
+    public JobList(Node[] Nodes, boolean empty) throws Exception {
+        this.Nodes = Nodes;
         if (!empty)
-            for (int x = 0; x < jobs.length; x++) this.push(x);
+            for (int x = 0; x < Nodes.length; x++) this.push(x);
         checkInvariant();
     }
 
-    public JobList(int[][] jobs, Node start, Node end, int length, int totalP) throws Exception {
-        this.jobs = jobs;
+    public JobList(Node[] Nodes, Node start, Node end, int length, int totalP) throws Exception {
+        this.Nodes = Nodes;
         this.start = start;
         this.end = end;
         this.length = length;
@@ -43,7 +50,7 @@ public class JobList {
             Node curr = start;
             while (curr != null) {
                 i += 1;
-                p += jobs[curr.index][0];
+                p += curr.p;
 
                 if (curr.index <= ind)
                     throw new Exception("Invariant: indices in wrong order");
@@ -76,8 +83,7 @@ public class JobList {
      * Runs O(1)
      */
     public Node push(int x) throws Exception {
-        Node n = new Node(x);
-        return push(n);
+        return push(Nodes[x].reset());
     }
 
     /**
@@ -93,8 +99,8 @@ public class JobList {
         n.join(null); // since our end
 
         length++;
-        totalP += jobs[n.index][0];
-        maxP = Math.max(maxP, jobs[n.index][0]); // store the maximum P
+        totalP += n.p;
+        maxP = Math.max(maxP, n.p); // store the maximum P
         checkInvariant();
         return n;
     }
@@ -107,7 +113,7 @@ public class JobList {
         if (length == 0)
             return this.push(x);
 
-        Node newNode = new Node(x);
+        Node newNode = Nodes[x].reset();
         Node current = start;
 
         if (current.index > x) {
@@ -127,7 +133,7 @@ public class JobList {
         }
 
         length++;
-        totalP += jobs[x][0];
+        totalP += Nodes[x].p;
 
         checkInvariant();
         return newNode;
@@ -149,9 +155,9 @@ public class JobList {
         Node k = null;
         Node beforeK = null;
 
-        // Find k (first node with max processing time)
+        // Find k (first Node with max processing time)
         while (current != null) {
-            currP = jobs[current.index][0];
+            currP = current.p;
 
             if (currP > maxP) {
                 k = current;
@@ -183,7 +189,7 @@ public class JobList {
             end = predecessor;
 
         length--;
-        totalP -= jobs[target.index][0];
+        totalP -= target.p;
 
         checkInvariant();
     }
@@ -227,7 +233,7 @@ public class JobList {
             if (current.index >= x) {
                 // Build the right list
                 JobList right = new JobList(
-                        jobs,
+                        Nodes,
                         current,
                         end,
                         length - lengthL,
@@ -248,12 +254,12 @@ public class JobList {
             }
 
             lengthL += 1;
-            totalPL += jobs[current.index][0];
+            totalPL += current.p;
             prev = current;
             current = current.next;
         }
         checkInvariant();
-        return new JobList(jobs, true); // O(1)
+        return new JobList(Nodes, true); // O(1)
     }
 
     /**
@@ -269,28 +275,11 @@ public class JobList {
         Node first = start;
         start = start.next;
         length -= 1;
-        totalP -= jobs[first.index][0];
+        totalP -= first.p;
 
         first.join(null);
         checkInvariant();
         return first;
-    }
-
-    class Node {
-        int index;
-        Node next;
-
-        public Node(int index) {
-            this.index = index;
-        }
-
-        /**
-         * Runs O(1)
-         */
-        public Node join(Node n) {
-            next = n;
-            return n;
-        }
     }
 
     public String toString() {
@@ -301,6 +290,34 @@ public class JobList {
             current = current.next;
         }
         return s + "} " + String.format("[ len: %s, totalP: %s ]", length, totalP);
+    }
+
+    static class Node {
+
+        int index;
+        int p;
+        int d;
+        Node next;
+
+        public Node(int index, int p, int d)
+        {
+            this.index = index;
+            this.p = p;
+            this.d = d;
+        }
+
+        /**
+         * Runs O(1)
+         */
+        public Node join(Node n) {
+            next = n;
+            return n;
+        }
+
+        public Node reset(){
+            this.next = null;
+            return this;
+        }
     }
 
 }

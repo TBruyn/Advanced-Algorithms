@@ -28,17 +28,23 @@ public class Dynamic {
     public int calculateTardiness() throws Exception {
 
         // Create a list of all jobs
-        JobList list = new JobList(jobs, false);
+        JobList list = JobList.fromArray(jobs);
 
-        return calculateTardiness(list, -1, 0, 0);
+        int result = calculateTardiness(list, -1, 0, 0);
+
+        System.out.println(metrics.calls + "," + metrics.computations);
+
+        return result;
     }
 
     public int calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
 
         metrics.calls++;
 
-        if(depth > 200)
-            throw new Exception("Depth > 200");
+        metrics.depth = Math.max(metrics.depth, depth);
+
+        if(depth > jobs.length)
+            throw new Exception("Depth cannot exceed number of jobs");
 
         // Limit i and j to the remaining elements in the list
         int i = list.start.index;
@@ -61,13 +67,12 @@ public class Dynamic {
 
         metrics.computations++;
 
-//        if(metrics.computations % 10000 == 0)
-//            System.out.println((float) metrics.computations / metrics.calls * 100);
-
         // Take the largest job from the list
         // - list: no longer contains kPrime
         int kPrime = list.extractMaxP(); // Runs O(n)
-
+        if(kPrime == k) {
+            throw new Exception("K = k'");
+        }
         int lowestTardiness = Integer.MAX_VALUE;
 
 
@@ -111,10 +116,6 @@ public class Dynamic {
 
         }
 
-        // Rejoin lists with k in position
-//        if (right != null)
-//            list.concat(right); // Runs O(1)
-
         list.insert(kPrime); // Runs O(n), can improve by remembering beforeK node?
 
         // Store the result for this computation, except the root (k = -1)
@@ -138,6 +139,8 @@ public class Dynamic {
      */
     class Store {
 
+        int x = 0;
+
         private HashMap<Integer, Integer>[][][] store;
 
         public Store(int size) {
@@ -145,6 +148,8 @@ public class Dynamic {
         }
 
         public void set(int i, int j, int k, int t, int tardiness) {
+            x++;
+            if(x > 40000000) return;
             if (store[i][j][k] == null)
                 store[i][j][k] = new HashMap<Integer, Integer>();
 

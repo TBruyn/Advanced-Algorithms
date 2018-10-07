@@ -5,7 +5,7 @@ public class TestJobList {
         try {
 
             int[][] jobs = {{3, 5}, {6, 4}, {6, 7}};
-            JobList list = new JobList(jobs, false);
+            JobList list = JobList.fromArray(jobs);
 
             int i = 0;
             for (int[] j : jobs) {
@@ -17,18 +17,18 @@ public class TestJobList {
             System.out.println(list);
 
             System.out.println("Extract Max P");
-            int k1 = list.extractMaxP();
-            System.out.println(k1);
-            System.out.println(list);
-
-            System.out.println("Extract Max P");
-            int k2 = list.extractMaxP();
-            System.out.println(k2);
-            System.out.println(list);
-
-            System.out.println("Extract Max P");
-            int k3 = list.extractMaxP();
-            System.out.println(k3);
+//            int k1 = list.extractMaxP();
+//            System.out.println(k1);
+//            System.out.println(list);
+//
+//            System.out.println("Extract Max P");
+//            int k2 = list.extractMaxP();
+//            System.out.println(k2);
+//            System.out.println(list);
+//
+//            System.out.println("Extract Max P");
+//            int k3 = list.extractMaxP();
+//            System.out.println(k3);
             System.out.println(list);
 
             System.out.println("Insert 0");

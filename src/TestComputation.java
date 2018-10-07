@@ -24,7 +24,9 @@ public class TestComputation {
     public static void testInstance (String src, int answer, boolean doGreedy, boolean doDynamic) throws  Exception {
 
         ProblemInstance instance = ComputeTardiness.readInstance(src+ ".dat");
+
         System.out.println(src + ".dat");
+//        System.out.println(MeasureHardness.measure(instance));
 
         if(doGreedy) {
             long t0 = System.nanoTime();
@@ -37,8 +39,7 @@ public class TestComputation {
                 System.out.println("- Greedy: " + time + " ms");
         }
 
-        Thread.sleep(2000);
-
+//        Thread.sleep(2000);
         if(doDynamic) {
             long t0 = System.nanoTime();
             int result = runDynamic(instance);
@@ -75,10 +76,12 @@ public class TestComputation {
                 String path = sc.next();
                 int ans = sc.nextInt();
 
+
+
                 if(x >= start) {
-                    Thread.sleep(2000);
+//                    Thread.sleep(2000);
                     testInstance(instanceRoot + '/' + path, ans, doGreedy, doDynamic);
-                    Thread.sleep(2000);
+//                    Thread.sleep(2000);
                 }
             }
 
