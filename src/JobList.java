@@ -1,89 +1,69 @@
+/**
+ * Efficient implementation to manage the sub-problem instance.
+ *
+ * Implemented as a singly-linked sorted list.
+ */
 public class JobList {
 
-    public boolean checkInv = false;
+    /**
+     * Keep all n jobs of the entire problem in memory, no need
+     * to create new JobNode objects later-on which reduces run-time
+     * and garbage-collection overhead.
+     *
+     * Careful: All JobList instances share the same set of nodes!
+     */
+    public JobNode[] jobs;
 
-    public Node start;
-    public Node end;
-    public int[][] jobs;
-
-    public int totalP = 0;
-    public int length = 0;
-    public int maxP = 0;
+    public JobNode start;
+    public JobNode end;
 
     /**
-     * Runs empty ? O(1) : O(n)
+     * Total processing time of all jobs in the list
      */
-    public JobList(int[][] jobs, boolean empty) throws Exception {
+    public int totalP = 0;
+
+    /**
+     * The number of jobs in the list
+     */
+    public int length = 0;
+
+    /**
+     * Create a JobList from a 2D jobs array
+     */
+    public static JobList fromArray(int[][] jobs) throws Exception {
+        JobNode[] nodes = new JobNode[jobs.length];
+
+        for (int x = 0; x < jobs.length; x++)
+            nodes[x] = new JobNode(x, jobs[x][0], jobs[x][1]);
+
+        return new JobList(nodes, false);
+    }
+
+    /**
+     * Create a new JobList based on the set of all jobs
+     * Runs O( empty ? 1 : n )
+     */
+    public JobList(JobNode[] jobs, boolean empty) throws Exception {
         this.jobs = jobs;
+
         if (!empty)
             for (int x = 0; x < jobs.length; x++) this.push(x);
-        checkInvariant();
-    }
 
-    public JobList(int[][] jobs, Node start, Node end, int length, int totalP) throws Exception {
-        this.jobs = jobs;
-        this.start = start;
-        this.end = end;
-        this.length = length;
-        this.totalP = totalP;
-
-        checkInvariant();
     }
 
     /**
-     * Checks the invariants of the list
-     * @throws Exception
-     */
-    public void checkInvariant() throws Exception {
-        if (checkInv) {
-
-            int i = 0;
-            int p = 0;
-            int ind = -1;
-            Node curr = start;
-            while (curr != null) {
-                i += 1;
-                p += jobs[curr.index][0];
-
-                if (curr.index <= ind)
-                    throw new Exception("Invariant: indices in wrong order");
-                ind = curr.index;
-
-                curr = curr.next;
-            }
-            if (i != length)
-                throw new Exception("Invariant: length is incorrect");
-
-            if (p != totalP)
-                throw new Exception("Invariant: totalP is incorrect");
-
-            if (length != 0 && start == null)
-                throw new Exception("Invarian: start null, length > 0");
-
-            if (length != 0 && end == null)
-                throw new Exception("Invarian: end null, length > 0");
-
-            if (end != null && end.next != null)
-                throw new Exception("Invarian: end.next != null");
-
-            if (length == 1 && start != end)
-                throw new Exception("Invarian: start != end && length == 1");
-
-        }
-    }
-
-    /**
+     * Push job with index x to the end of the list.
      * Runs O(1)
      */
-    public Node push(int x) throws Exception {
-        Node n = new Node(x);
-        return push(n);
+    public JobNode push(int x) throws Exception {
+        return push(jobs[x].reset());
     }
 
     /**
+     * Push a given node to the end of the list.
      * Runs O(1)
      */
-    public Node push(Node n) throws Exception {
+    public JobNode push(JobNode n) throws Exception {
         if (length == 0) {
             start = end = n;
         } else {
@@ -93,22 +73,22 @@ public class JobList {
         n.join(null); // since our end
 
         length++;
-        totalP += jobs[n.index][0];
-        maxP = Math.max(maxP, jobs[n.index][0]); // store the maximum P
-        checkInvariant();
+        totalP += n.p;
+
         return n;
     }
 
     /**
+     * Insert job with index x in this (sorted) list
      * Runs O(n)
      */
-    public Node insert(int x) throws Exception {
+    public JobNode insert(int x) throws Exception {
 
         if (length == 0)
             return this.push(x);
 
-        Node newNode = new Node(x);
-        Node current = start;
+        JobNode newNode = jobs[x].reset();
+        JobNode current = start;
 
         if (current.index > x) {
             newNode.join(start);
@@ -127,13 +107,15 @@ public class JobList {
         }
 
         length++;
-        totalP += jobs[x][0];
+        totalP += jobs[x].p;
 
-        checkInvariant();
+
         return newNode;
     }
 
     /**
+     * Remove the first job with the largest processing time from the list and
+     * return its index.
      * Runs O(n)
      */
     public int extractMaxP() throws Exception {
@@ -141,17 +123,17 @@ public class JobList {
         if (length == 0)
             throw new Exception("No maxP in empty list");
 
-        Node current = start;
-        Node prev = null;
+        JobNode current = start;
+        JobNode prev = null;
         int currP = 0;
 
         int maxP = 0;
-        Node k = null;
-        Node beforeK = null;
+        JobNode k = null;
+        JobNode beforeK = null;
 
-        // Find k (first node with max processing time)
+        // Find k (first JobNode with max processing time)
         while (current != null) {
-            currP = jobs[current.index][0];
+            currP = current.p;
 
             if (currP > maxP) {
                 k = current;
@@ -166,14 +148,15 @@ public class JobList {
         // Remove k
         remove(beforeK, k); // O(1)
 
-        checkInvariant();
+
         return k.index;
     }
 
     /**
+     * Remove a given JobNode from the list, passing its predecessor for speed-up.
      * Runs O(1)
      */
-    private void remove(Node predecessor, Node target) throws Exception { // List must contain these!
+    private void remove(JobNode predecessor, JobNode target) throws Exception { // List must contain these!
         if (predecessor == null) // start
             start = target.next;
         else
@@ -183,55 +166,31 @@ public class JobList {
             end = predecessor;
 
         length--;
-        totalP -= jobs[target.index][0];
+        totalP -= target.p;
 
-        checkInvariant();
+
     }
 
     /**
-     * Runs O(1)
-     */
-    public JobList concat(JobList list) throws Exception {
-        if (list == null)
-            throw new Exception("Right list cannot be null");
-
-        if (length == 0) { // |left| is 0, copy right list
-            start = list.start;
-            end = list.end;
-            length = list.length;
-            totalP = list.totalP;
-
-        } else if (list.length > 0) { //
-            end.join(list.start);
-            end = list.end;
-
-            length += list.length;
-            totalP += list.totalP;
-        }
-
-        checkInvariant();
-        return this;
-    }
-
-    /**
+     * Split this list at a job with index x
      * Runs O(n)
      */
     public JobList split(int x) throws Exception {
         int lengthL = 0;
         int totalPL = 0;
 
-        Node current = start;
-        Node prev = null;
+        JobNode current = start;
+        JobNode prev = null;
 
         while (current != null) {
             if (current.index >= x) {
+
                 // Build the right list
-                JobList right = new JobList(
-                        jobs,
-                        current,
-                        end,
-                        length - lengthL,
-                        totalP - totalPL); // O(1)
+                JobList right = new JobList(jobs, true);
+                right.start = current;
+                right.end = end;
+                right.length = length - lengthL;
+                right.totalP = totalP - totalPL;
 
                 // Correct the left list
                 if (current == start) {
@@ -248,59 +207,74 @@ public class JobList {
             }
 
             lengthL += 1;
-            totalPL += jobs[current.index][0];
+            totalPL += current.p;
             prev = current;
             current = current.next;
         }
-        checkInvariant();
+
         return new JobList(jobs, true); // O(1)
     }
 
     /**
+     * Remove the first element from this list.
      * Runs O(1)
      */
-    public Node removeFirst() throws Exception {
+    public JobNode removeFirst() throws Exception {
         if (this.length == 0)
             throw new Exception("List is empty");
 
         if (this.length == 1)
             this.end = null;
 
-        Node first = start;
+        JobNode first = start;
         start = start.next;
         length -= 1;
-        totalP -= jobs[first.index][0];
+        totalP -= first.p;
 
         first.join(null);
-        checkInvariant();
+
         return first;
     }
 
-    class Node {
-        int index;
-        Node next;
+    /**
+     * This class represents a node in the singly-linked list.
+     */
+    static class JobNode {
 
-        public Node(int index) {
+        /** The index in the original input (in increasing deadline order). */
+        int index;
+
+        /** The processing time of this job */
+        int p;
+
+        /** The deadline of this job */
+        int d;
+
+        /** The next job currently linked to */
+        JobNode next;
+
+        public JobNode(int index, int p, int d) {
             this.index = index;
+            this.p = p;
+            this.d = d;
         }
 
         /**
+         * Link this node to a given node
          * Runs O(1)
          */
-        public Node join(Node n) {
+        public JobNode join(JobNode n) {
             next = n;
             return n;
         }
-    }
 
-    public String toString() {
-        String s = "{";
-        Node current = start;
-        while (current != null) {
-            s += current.index + ",";
-            current = current.next;
+        /**
+         * Unlink this node. This makes the node re-usable for optimization purposes.
+         */
+        public JobNode reset() {
+            this.next = null;
+            return this;
         }
-        return s + "} " + String.format("[ len: %s, totalP: %s ]", length, totalP);
     }
 
 }

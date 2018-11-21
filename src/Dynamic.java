@@ -2,8 +2,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
+/**
+ * Our implementation of the Minimum Tardiness algorithm by Lawler
+ */
 public class Dynamic {
 
+    /**
+     * The original problem data
+     */
     private int[][] jobs;
 
     /**
@@ -28,14 +34,23 @@ public class Dynamic {
     public int calculateTardiness() throws Exception {
 
         // Create a list of all jobs
-        JobList list = new JobList(jobs, false);
+        JobList list = JobList.fromArray(jobs);
 
-        return calculateTardiness(list, -1, 0);
+        return calculateTardiness(list, -1, 0, 0);
     }
 
-    public int calculateTardiness(JobList list, int k, int t) throws Exception {
+    /**
+     * Given a list of jobs, a k-index and a starting time t, calculate the minimum tardiness.
+     *
+     * Note: depth is only passed for performance analysis.
+     */
+    public int calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
 
         metrics.calls++;
+        metrics.depth = Math.max(metrics.depth, depth);
+
+        if(depth > jobs.length)
+            throw new Exception("Depth cannot exceed number of jobs");
 
         // Limit i and j to the remaining elements in the list
         int i = list.start.index;
@@ -61,16 +76,19 @@ public class Dynamic {
         // Take the largest job from the list
         // - list: no longer contains kPrime
         int kPrime = list.extractMaxP(); // Runs O(n)
-
+        if(kPrime == k) {
+            throw new Exception("K = k'");
+        }
         int lowestTardiness = Integer.MAX_VALUE;
 
-        // Original length of the list
-        int originalLength = list.length;
 
         // Split the list at k', results in:
         // - list: the left side of the split
         // - right: the right side of the split
         JobList right = list.split(kPrime); // Runs O(n)
+
+        // Original length of the list
+        int originalLength = right.length;
 
         for (int d = 0; d <= originalLength; d++) {
 
@@ -82,14 +100,14 @@ public class Dynamic {
 
                 // Recurse over the left list (if not empty)
                 int tardinessLeft = list.length == 0 ? 0 :
-                        calculateTardiness(list, kPrime, t);
+                        calculateTardiness(list, kPrime, t, depth+1);
 
                 int kPrimeDone = leftComplete + jobs[kPrime][0];
                 int tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
                 // Recurse over the right list (if not empty)
                 int tardinessRight = right.length == 0 ? 0 :
-                        calculateTardiness(right, kPrime, kPrimeDone);
+                        calculateTardiness(right, kPrime, kPrimeDone, depth+1);
 
                 int total = tardinessLeft + tardinessKPrime + tardinessRight;
 
@@ -98,16 +116,15 @@ public class Dynamic {
                 }
             }
 
-            // Move over one item from the right to the left list
+            // Move over one item from the right to the left list.
+            //   This ensures `list` is restored to its original state
+            //   after all iterations.
             if (right.length > 0)
                 list.push(right.removeFirst()); // Runs O(1)
 
         }
 
-        // Rejoin lists with k in position
-        if (right != null)
-            list.concat(right); // Runs O(1)
-
+        // Re-insert node kPrime to restore the list
         list.insert(kPrime); // Runs O(n), can improve by remembering beforeK node?
 
         // Store the result for this computation, except the root (k = -1)
@@ -127,7 +144,10 @@ public class Dynamic {
     }
 
     /**
-     * This class is used for memoization of all computations.
+     * Caching of computations is done using a 3 dimensional array
+     * of HashMaps. The dimensions are `i`, `j` and `k` which range
+     * from 0 to n (number of jobs). The time `t` can range from
+     * 0 to n * pMax (the largest processing time).
      */
     class Store {
 
@@ -137,6 +157,9 @@ public class Dynamic {
             store = new HashMap[size][size][size];
         }
 
+        /**
+         * Save the solution to a problem (i,j,k,t) in the store.
+         */
         public void set(int i, int j, int k, int t, int tardiness) {
             if (store[i][j][k] == null)
                 store[i][j][k] = new HashMap<Integer, Integer>();
@@ -145,7 +168,7 @@ public class Dynamic {
         }
 
         /**
-         * Return the tardiness of problem (i,j,k,t) or -1 if not available
+         * Return the tardiness of problem (i,j,k,t) or -1 if not available.
          */
         public int get(int i, int j, int k, int t) {
             if (store[i][j][k] == null)
@@ -161,6 +184,7 @@ public class Dynamic {
      * Keep some metrics for performance tracking
      */
     class MetricsBag {
+        public int depth;
         public int calls;
         public int computations;
     }
