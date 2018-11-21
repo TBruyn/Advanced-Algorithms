@@ -10,7 +10,7 @@ public class DynamicSequence {
     /**
      * The original problem data
      */
-    private int[][] jobs;
+    private float[][] jobs;
 
     /**
      * Store some performance data for evaluation
@@ -22,19 +22,19 @@ public class DynamicSequence {
      */
     private Store store;
 
-    public DynamicSequence(ProblemInstance instance) {
+    public DynamicSequence(float[][] jobs) {
 
-        jobs = instance.getJobs();
+        this.jobs = jobs;
         store = new Store(jobs.length);
         metrics = new MetricsBag();
 
-        Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
+//        Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
 
     public int[] calculateSequence() throws Exception {
 
         // Create a list of all jobs
-        JobList list = JobList.fromArray(jobs);
+        JobListDecimal list = JobListDecimal.fromArray(jobs);
 
         Result r = calculateTardiness(list, -1, 0, 0);
 
@@ -42,7 +42,7 @@ public class DynamicSequence {
     }
 
 
-    public int calculateTardiness() throws Exception {
+    public float calculateTardiness() throws Exception {
         // Calculate the sequence
         int[] seq = calculateSequence();
 
@@ -51,7 +51,7 @@ public class DynamicSequence {
         for(int i = 0; i < seq.length; i++ ){
             int index = seq[i];
             t += jobs[index][0];
-            int Ti = Math.max(0, t - jobs[index][1]);
+            float Ti = Math.max(0, t - jobs[index][1]);
 
             T += Ti;
         }
@@ -64,7 +64,7 @@ public class DynamicSequence {
      *
      * Note: depth is only passed for performance analysis.
      */
-    public Result calculateTardiness(JobList list, int k, int t, int depth) throws Exception {
+    public Result calculateTardiness(JobListDecimal list, int k, int t, int depth) throws Exception {
 
         metrics.calls++;
         metrics.depth = Math.max(metrics.depth, depth);
@@ -101,13 +101,13 @@ public class DynamicSequence {
         if(kPrime == k) {
             throw new Exception("K = k'");
         }
-        int lowestTardiness = Integer.MAX_VALUE;
+        float lowestTardiness = Float.MAX_VALUE;
 
 
         // Split the list at k', results in:
         // - list: the left side of the split
         // - right: the right side of the split
-        JobList right = list.split(kPrime); // Runs O(n)
+        JobListDecimal right = list.split(kPrime); // Runs O(n)
 
         // Original length of the list
         int originalLength = right.length;
@@ -125,17 +125,17 @@ public class DynamicSequence {
                 // Recurse over the left list (if not empty)
                 Result leftRes = list.length == 0 ? null :
                         calculateTardiness(list, kPrime, t, depth+1);
-                int tardinessLeft = leftRes == null ? 0 : leftRes.tardiness;
+                float tardinessLeft = leftRes == null ? 0 : leftRes.tardiness;
 
-                int kPrimeDone = leftComplete + jobs[kPrime][0];
-                int tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
+                int kPrimeDone = leftComplete + (int) jobs[kPrime][0];
+                float tardinessKPrime = Math.max(0, kPrimeDone - jobs[kPrime][1]);
 
                 // Recurse over the right list (if not empty)
                 Result rightRes = right.length == 0 ? null :
                         calculateTardiness(right, kPrime, kPrimeDone, depth+1);
-                int tardinessRight = rightRes == null ? 0 : rightRes.tardiness;
+                float tardinessRight = rightRes == null ? 0 : rightRes.tardiness;
 
-                int total = tardinessLeft + tardinessKPrime + tardinessRight;
+                float total = tardinessLeft + tardinessKPrime + tardinessRight;
 
                 if (total < lowestTardiness) {
                     lowestTardiness = total;
@@ -165,22 +165,13 @@ public class DynamicSequence {
         return result;
     }
 
-    /**
-     * Sort the 2D jobs array by deadline (2nd element of each pair)
-     */
-    class SortByDeadline implements Comparator<int[]> {
-        public int compare(int[] a, int[] b) {
-            return a[1] - b[1];
-        }
-    }
-
     class Result {
         public int k;
-        public int tardiness;
+        public float tardiness;
         public Result left;
         public Result right;
 
-        public Result(int k, int tardiness, Result left, Result right) {
+        public Result(int k, float tardiness, Result left, Result right) {
             this.k = k;
             this.tardiness = tardiness;
             this.left = left;
@@ -210,7 +201,7 @@ public class DynamicSequence {
      */
     class Store {
 
-        private HashMap<Integer, Result>[][][] store;
+        private HashMap<Float, Result>[][][] store;
 
         public Store(int size) {
             store = new HashMap[size][size][size];
@@ -219,7 +210,7 @@ public class DynamicSequence {
         /**
          * Save the solution to a problem (i,j,k,t) in the store.
          */
-        public void set(int i, int j, int k, int t, Result result) {
+        public void set(int i, int j, int k, float t, Result result) {
             if (store[i][j][k] == null)
                 store[i][j][k] = new HashMap<>();
 
@@ -229,7 +220,7 @@ public class DynamicSequence {
         /**
          * Return the tardiness of problem (i,j,k,t) or -1 if not available.
          */
-        public Result get(int i, int j, int k, int t) {
+        public Result get(int i, int j, int k, float t) {
             if (store[i][j][k] == null)
                 return null;
 //                return -1;
