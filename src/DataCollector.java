@@ -1,6 +1,8 @@
 import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DataCollector {
     private String[] headers = new String[] {
@@ -44,18 +46,25 @@ public class DataCollector {
     private HashMap<String, String> processFile() {
         HashMap<String, String> result = new HashMap<>();
 
-        String filename = fileQueue.pop();
-        String[] filenameParts = filename.split("_");
+        ExecutorService executorService = Executors.newFixedThreadPool(6);
+        
 
-        result.put( "Filename",
+        while (!fileQueue.isEmpty()) {
+
+            String filename = fileQueue.pop();
+            String[] filenameParts = filename.split("_");
+
+            result.put("Filename",
                     filename);
-        result.put( "RDD",
+            result.put("RDD",
                     filenameParts[1].split("=")[1]);
-        result.put( "TF",
+            result.put("TF",
                     filenameParts[2].split("=")[1]);
-        result.put( "Size",
+            result.put("Size",
                     filenameParts[3]
                             .substring(1, filenameParts[3].length() - 4));
+
+        }
 
         System.out.println(result);
         return result;
