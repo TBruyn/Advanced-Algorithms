@@ -11,7 +11,7 @@ public class TestComputation {
     }
 
     public static int runDynamic(ProblemInstance instance) {
-        Dynamic dynamic = new Dynamic(instance);
+        DynamicSequence dynamic = new DynamicSequence(instance);
 //        Schedule schedule = dynamic.getSchedule();
         try {
             return dynamic.calculateTardiness();
