@@ -1,10 +1,10 @@
 import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class DataCollector {
+    private static final int TIME_LIMIT_IN_SECONDS = 10;
     private String[] headers = new String[] {
                 "Filename",
                 "RDD",
@@ -47,11 +47,15 @@ public class DataCollector {
         HashMap<String, String> result = new HashMap<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(6);
-        
+
 
         while (!fileQueue.isEmpty()) {
 
             String filename = fileQueue.pop();
+
+            ProblemInstance problemInstance = ComputeTardiness.readInstance
+                    ("data/provided/" + filename);
+
             String[] filenameParts = filename.split("_");
 
             result.put("Filename",
@@ -64,10 +68,91 @@ public class DataCollector {
                     filenameParts[3]
                             .substring(1, filenameParts[3].length() - 4));
 
+            Callable<String[]> runDynamic = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[]{"" + tardiness, "" + processingTime};
+            };
+            Callable<String[]> runApproxE01 = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[] {"" + tardiness, "" + processingTime};
+            };
+            Callable<String[]> runApproxE02 = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[] {"" + tardiness, "" + processingTime};
+            };
+            Callable<String[]> runApproxE03 = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[] {"" + tardiness, "" + processingTime};
+            };
+            Callable<String[]> runGreedy = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[] {"" + tardiness, "" + processingTime};
+            };
+            Callable<String[]> runBestFirst = () -> {
+                long startingTime = System.currentTimeMillis();
+                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                long processingTime = System.currentTimeMillis() - startingTime;
+                return new String[] {"" + processingTime, "" + tardiness};
+            };
+
+            Future<String[]> dynamicFuture      = executorService.submit(runDynamic);
+            Future<String[]> approxe01Future    = executorService.submit(runDynamic);
+            Future<String[]> approxe02Future    = executorService.submit(runDynamic);
+            Future<String[]> approxe03Future    = executorService.submit(runDynamic);
+            Future<String[]> greedyFuture       = executorService.submit(runDynamic);
+            Future<String[]> bestFirstFuture    = executorService.submit(runDynamic);
+
+            String[] dynamicResult =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            String[] approxe01Result =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            String[] approxe02Result =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            String[] approxe03Result =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            String[] greedyResult =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            String[] bestFirstResult =
+                    getResultFromThread(dynamicFuture, TIME_LIMIT_IN_SECONDS);
+            result.put("Dynamic-runtime",           dynamicResult[0]);
+            result.put("Dynamic-tardiness",         dynamicResult[1]);
+            result.put("Approx-e=0.1-runtime",      approxe01Result[0]);
+            result.put("Approx-e=0.1-tardiness",    approxe01Result[1]);
+            result.put("Approx-e=0.2-runtime",      approxe02Result[0]);
+            result.put("Approx-e=0.2-tardiness",    approxe02Result[1]);
+            result.put("Approx-e=0.3-runtime",      approxe03Result[0]);
+            result.put("Approx-e=0.3-tardiness",    approxe03Result[1]);
+            result.put("Greedy-runtime",            greedyResult[0]);
+            result.put("Greedy-tardiness",          greedyResult[1]);
+            result.put("BestFirst-runtime",         bestFirstResult[0]);
+            result.put("BestFirst-tardiness",       bestFirstResult[1]);
+
+
         }
 
         System.out.println(result);
         return result;
+    }
+
+    private String[] getResultFromThread(Future<String[]> future, int
+            timeOutInSeconds) {
+        try {
+            return future.get(timeOutInSeconds, TimeUnit.SECONDS);
+        } catch (   InterruptedException
+                | ExecutionException
+                | TimeoutException e) {
+            return new String[]{"NaN", "NaN"};
+        }
     }
 
     private void fillFileQueue() {
@@ -77,7 +162,7 @@ public class DataCollector {
             BufferedReader br = new BufferedReader(fr);
 
             String line;
-            while ( (line = br.readLine()) != null) {
+            while ( (line = br.readLine()) != null && fileQueue.size() < 10) {
                 String filename = line.split("\t")[0] + ".dat";
                 fileQueue.add(filename);
             }
