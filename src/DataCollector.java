@@ -76,19 +76,19 @@ public class DataCollector {
             };
             Callable<String[]> runApproxE01 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                int tardiness = new Approx(problemInstance, 0.1f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE02 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                int tardiness = new Approx(problemInstance, 0.2f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE03 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                int tardiness = new Approx(problemInstance, 0.3f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
