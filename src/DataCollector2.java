@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.concurrent.*;
 
 public class DataCollector2 {
-    private static final int TIME_LIMIT_IN_SECONDS = 2;
+    private static final int TIME_LIMIT_IN_SECONDS = 100000;
     private String[] headers = new String[] {
             "Filename",
             "RDD",
@@ -26,15 +26,13 @@ public class DataCollector2 {
     private String outputFileName = "testoutput.csv";
     private String inputFileName = "data/provided-answers.txt";
 
-    private LinkedList<String> fileQueue;
-
     public DataCollector2() {
-        fileQueue = new LinkedList<>();
-        fillFileQueue();
+        LinkedList<String> queue = fillFileQueue();
 
         new File(outputFileName).delete();
         print_headers();
-        processFile();
+
+        processFile(queue);
     }
 
     private void init() {
@@ -46,7 +44,7 @@ public class DataCollector2 {
      * Expected filename format: random_RDD=1.0_TF=1.0_#100.dat
      * @return
      */
-    private void processFile() {
+    private void processFile(LinkedList<String> fileQueue) {
         HashMap<String, String> result = new HashMap<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(6);
@@ -57,7 +55,8 @@ public class DataCollector2 {
 
             String filename = fileQueue.pop();
 
-            ProblemInstance problemInstance = ComputeTardiness.readInstance
+            final ProblemInstance problemInstance = ComputeTardiness
+                    .readInstance
                     ("data/provided/" + filename);
 
             String[] filenameParts = filename.split("_");
@@ -76,38 +75,50 @@ public class DataCollector2 {
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Dynamic(problemInstance).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
-                return new String[]{"" + tardiness, "" + processingTime};
+                return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE01 = () -> {
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Dynamic(problemInstance).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
-                return new String[] {"" + tardiness, "" + processingTime};
+                return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE02 = () -> {
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Dynamic(problemInstance).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
-                return new String[] {"" + tardiness, "" + processingTime};
+                return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE03 = () -> {
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Dynamic(problemInstance).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
-                return new String[] {"" + tardiness, "" + processingTime};
+                return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runGreedy = () -> {
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Greedy(problemInstance).getSchedule().getTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
-                return new String[] {"" + tardiness, "" + processingTime};
-            };
-            Callable<String[]> runBestFirst = () -> {
-                long startingTime = System.currentTimeMillis();
-                int tardiness = new BestFirst(problemInstance).getSchedule().getTardiness();
-                long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
+            Callable<String[]> runBestFirst = () -> {
+                try {
+                    if (problemInstance.getNumJobs() <= 10) {
+                        long startingTime = System.currentTimeMillis();
+                        int tardiness = new BestFirst(problemInstance).getSchedule().getTardiness();
+                        long processingTime = System.currentTimeMillis() - startingTime;
+                        return new String[]{"" + processingTime, "" + tardiness};
+                    } else {
+                        return new String[]{"NaN", "NaN"};
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Thread.currentThread().interrupt();
+                    return new String[]{"NaN", "NaN"};
+                }
+            };
+
+
 
             Future<String[]> dynamicFuture      = executorService.submit(runDynamic);
             Future<String[]> approxe01Future    = executorService.submit(runApproxE01);
@@ -143,40 +154,57 @@ public class DataCollector2 {
             result.put("BestFirst-tardiness",       bestFirstResult[1]);
 
             System.out.println((System.currentTimeMillis() - begin)/1000 +
-                    ": Finished processing " + filename);
+                    "s: Finished processing " + filename + ". Left: " +
+                    fileQueue.size());
             print_resultline(result);
         }
 
         System.out.println("Finished processing, shutting down collector");
         executorService.shutdown();
+
+        try {
+            executorService.awaitTermination(0, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(executorService.isShutdown());
+        System.out.println(executorService.isTerminated());
     }
 
     private String[] getResultFromThread(Future<String[]> future, int
             timeOutInSeconds) {
         try {
-            return future.get(timeOutInSeconds, TimeUnit.SECONDS);
+            return future.get();
         } catch (   InterruptedException
-                | ExecutionException
-                | TimeoutException e) {
+                | ExecutionException e
+//                | TimeoutException e
+                ) {
+            e.printStackTrace();
+            future.cancel(true);
             return new String[]{"NaN", "NaN"};
         }
     }
 
-    private void fillFileQueue() {
+    private LinkedList<String> fillFileQueue() {
+        LinkedList<String> fileQueue = new LinkedList<>();
         File file = new File(inputFileName);
         try {
             FileReader fr = new FileReader(file);
             BufferedReader br = new BufferedReader(fr);
 
             String line;
-            while ( (line = br.readLine()) != null && fileQueue.size() < 5) {
+            while ( (line = br.readLine()) != null
+                    && fileQueue.size() < 5
+                    ) {
                 String filename = line.split("\t")[0] + ".dat";
                 fileQueue.add(filename);
             }
+            System.out.println("Added " + fileQueue.size() + " files to queue");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return fileQueue;
     }
 
     private void print_headers() {

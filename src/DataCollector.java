@@ -78,6 +78,7 @@ public class DataCollector {
                 } catch (Exception e) {
                     result.put("Dynamic-tardiness", "NaN");
                     result.put("Dynamic-runtime", "NaN");
+                    Thread.currentThread().interrupt();
                 }
 
             });
@@ -142,6 +143,7 @@ public class DataCollector {
                 } catch (Exception e) {
                     result.put("BestFirst-tardiness", "NaN");
                     result.put("BestFirst-runtime", "NaN");
+                    Thread.currentThread().interrupt();
                 }
             });
 
@@ -182,7 +184,7 @@ public class DataCollector {
             BufferedReader br = new BufferedReader(fr);
 
             String line;
-            while ( (line = br.readLine()) != null && fileQueue.size() < 2) {
+            while ( (line = br.readLine()) != null && fileQueue.size() < 10) {
                 String filename = line.split("\t")[0] + ".dat";
                 fileQueue.add(filename);
             }
