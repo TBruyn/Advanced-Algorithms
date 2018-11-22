@@ -51,9 +51,14 @@ public class Approx {
             jobsScaled[i] = new float[]{ (float) Math.floor(jobs[i][0] / K), (jobs[i][1] / K) };
         }
 
-        DynamicSequence dyn = new DynamicSequence(jobsScaled);
+        long t0 = System.nanoTime();
 
+        DynamicSequence dyn = new DynamicSequence(jobsScaled);
         int[] seq = dyn.calculateSequence();
+
+        long t1 = System.nanoTime();
+        long time = (t1 - t0) / 1000000;
+        System.out.println("- Time: " + time);
 
         int t = 0;
         int T = 0;

@@ -246,6 +246,14 @@ public class JobListDecimal {
         return first;
     }
 
+    public int getI() {
+        return this.length == 0 ? -1 : this.start.index;
+    }
+
+    public int getJ() {
+        return this.length == 0 ? -1 : this.end.index;
+    }
+
     /**
      * This class represents a node in the singly-linked list.
      */
