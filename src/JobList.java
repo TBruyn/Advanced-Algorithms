@@ -39,6 +39,16 @@ public class JobList {
         return new JobList(nodes, false);
     }
 
+    public int[] toArray() {
+        int[] arr = new int[length];
+        JobNode x = start;
+        for(int i = 0; i < length; i++) {
+            arr[i] = x.index;
+            x = x.next;
+        }
+        return arr;
+    }
+
     /**
      * Create a new JobList based on the set of all jobs
      * Runs O( empty ? 1 : n )
