@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.concurrent.*;
 
 public class DataCollector2 {
-    private static final int TIME_LIMIT_IN_SECONDS = 3;
+    private static final int TIME_LIMIT_IN_SECONDS = 2;
     private String[] headers = new String[] {
             "Filename",
             "RDD",
@@ -31,24 +31,27 @@ public class DataCollector2 {
     public DataCollector2() {
         fileQueue = new LinkedList<>();
         fillFileQueue();
-        processFile();
 
-//        new File(outputFileName).delete();
-//        print_headers();
+        new File(outputFileName).delete();
+        print_headers();
+        processFile();
     }
 
+    private void init() {
 
+    }
 
     /**
      * Read the first file in the queue
      * Expected filename format: random_RDD=1.0_TF=1.0_#100.dat
      * @return
      */
-    private HashMap<String, String> processFile() {
+    private void processFile() {
         HashMap<String, String> result = new HashMap<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(6);
 
+        long begin = System.currentTimeMillis();
 
         while (!fileQueue.isEmpty()) {
 
@@ -139,12 +142,13 @@ public class DataCollector2 {
             result.put("BestFirst-runtime",         bestFirstResult[0]);
             result.put("BestFirst-tardiness",       bestFirstResult[1]);
 
-            System.out.println(result);
-
+            System.out.println((System.currentTimeMillis() - begin)/1000 +
+                    ": Finished processing " + filename);
+            print_resultline(result);
         }
 
+        System.out.println("Finished processing, shutting down collector");
         executorService.shutdown();
-        return result;
     }
 
     private String[] getResultFromThread(Future<String[]> future, int
@@ -165,7 +169,7 @@ public class DataCollector2 {
             BufferedReader br = new BufferedReader(fr);
 
             String line;
-            while ( (line = br.readLine()) != null && fileQueue.size() < 3) {
+            while ( (line = br.readLine()) != null && fileQueue.size() < 5) {
                 String filename = line.split("\t")[0] + ".dat";
                 fileQueue.add(filename);
             }
@@ -190,7 +194,7 @@ public class DataCollector2 {
             PrintWriter pw = new PrintWriter(bw);
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < headers.length - 1; i++) {
-                sb.append(line_to_print.get(headers[i]));
+                sb.append(line_to_print.get(headers[i]) + ", ");
             }
             sb.append(line_to_print.get(headers[headers.length - 1]));
             String line = sb.toString();
