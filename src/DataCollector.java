@@ -34,10 +34,6 @@ public class DataCollector {
         processFile(queue);
     }
 
-    private void init() {
-
-    }
-
     /**
      * Read the first file in the queue
      * Expected filename format: random_RDD=1.0_TF=1.0_#100.dat
