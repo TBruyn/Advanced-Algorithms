@@ -51,8 +51,7 @@ public class DataCollector {
             String filename = fileQueue.pop();
 
             final ProblemInstance problemInstance = ComputeTardiness
-                    .readInstance
-                    ("data/provided/" + filename);
+                    .readInstance("data/provided/" + filename);
 
             String[] filenameParts = filename.split("_");
 
@@ -70,31 +69,31 @@ public class DataCollector {
 
             Callable<String[]> runDynamic = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Dynamic(problemInstance).calculateTardiness();
+                int tardiness = new Dynamic(problemInstance.copy()).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE01 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Approx(problemInstance, 0.1f).calculateTardiness();
+                int tardiness = new Approx(problemInstance.copy(), 0.1f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE02 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Approx(problemInstance, 0.2f).calculateTardiness();
+                int tardiness = new Approx(problemInstance.copy(), 0.2f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE03 = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Approx(problemInstance, 0.3f).calculateTardiness();
+                int tardiness = new Approx(problemInstance.copy(), 0.3f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runGreedy = () -> {
                 long startingTime = System.currentTimeMillis();
-                int tardiness = new Greedy(problemInstance).getSchedule().getTardiness();
+                int tardiness = new Greedy(problemInstance.copy()).getSchedule().getTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
                 return new String[] {"" + processingTime, "" + tardiness};
             };
@@ -102,7 +101,7 @@ public class DataCollector {
                 try {
                     if (problemInstance.getNumJobs() <= 10) {
                         long startingTime = System.currentTimeMillis();
-                        int tardiness = new BestFirst(problemInstance).getSchedule().getTardiness();
+                        int tardiness = new BestFirst(problemInstance.copy()).getSchedule().getTardiness();
                         long processingTime = System.currentTimeMillis() - startingTime;
                         return new String[]{"" + processingTime, "" + tardiness};
                     } else {
