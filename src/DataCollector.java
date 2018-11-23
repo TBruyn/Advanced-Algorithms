@@ -160,7 +160,7 @@ public class DataCollector {
             result.put("Approx-e=0.2-tardiness",    approxe02Result[1]);
             result.put("Approx-e=0.3-runtime",      approxe03Result[0]);
             result.put("Approx-e=0.3-tardiness",    approxe03Result[1]);
-            result.put("Greedy-runtime",            greedyResult[0]);
+            result.put("Greedy-runti.fme",            greedyResult[0]);
             result.put("Greedy-tardiness",          greedyResult[1]);
             result.put("BestFirst-runtime",         bestFirstResult[0]);
             result.put("BestFirst-tardiness",       bestFirstResult[1]);
