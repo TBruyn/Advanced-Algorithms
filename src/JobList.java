@@ -1,21 +1,21 @@
 /**
  * Efficient implementation to manage the sub-problem instance.
- *
+ * <p>
  * Implemented as a singly-linked sorted list.
  */
-public class JobList {
+public class JobList<T extends Number> {
 
     /**
      * Keep all n jobs of the entire problem in memory, no need
      * to create new JobNode objects later-on which reduces run-time
      * and garbage-collection overhead.
-     *
+     * <p>
      * Careful: All JobList instances share the same set of nodes!
      */
     public JobNode[] jobs;
 
-    public JobNode start;
-    public JobNode end;
+    public JobNode<T> start;
+    public JobNode<T> end;
 
     /**
      * Total processing time of all jobs in the list
@@ -28,10 +28,22 @@ public class JobList {
     public int length = 0;
 
     /**
-     * Create a JobList from a 2D jobs array
+     * Create a JobList from a 2D jobs array (float)
      */
-    public static JobList fromArray(int[][] jobs) throws Exception {
-        JobNode[] nodes = new JobNode[jobs.length];
+    public static JobList<Float> fromArray(float[][] jobs) throws Exception {
+        JobNode<Float>[] nodes = new JobNode[jobs.length];
+
+        for (int x = 0; x < jobs.length; x++)
+            nodes[x] = new JobNode(x, (int) jobs[x][0], jobs[x][1]);
+
+        return new JobList(nodes, false);
+    }
+
+    /**
+     * Create a JobList from a 2D jobs array (int)
+     */
+    public static JobList<Integer> fromArray(int[][] jobs) throws Exception {
+        JobNode<Integer>[] nodes = new JobNode[jobs.length];
 
         for (int x = 0; x < jobs.length; x++)
             nodes[x] = new JobNode(x, jobs[x][0], jobs[x][1]);
@@ -39,21 +51,11 @@ public class JobList {
         return new JobList(nodes, false);
     }
 
-    public int[] toArray() {
-        int[] arr = new int[length];
-        JobNode x = start;
-        for(int i = 0; i < length; i++) {
-            arr[i] = x.index;
-            x = x.next;
-        }
-        return arr;
-    }
-
     /**
      * Create a new JobList based on the set of all jobs
      * Runs O( empty ? 1 : n )
      */
-    public JobList(JobNode[] jobs, boolean empty) throws Exception {
+    public JobList(JobNode<T>[] jobs, boolean empty) throws Exception {
         this.jobs = jobs;
 
         if (!empty)
@@ -246,24 +248,40 @@ public class JobList {
         return first;
     }
 
+    public int getI() {
+        return this.length == 0 ? -1 : this.start.index;
+    }
+
+    public int getJ() {
+        return this.length == 0 ? -1 : this.end.index;
+    }
+
     /**
      * This class represents a node in the singly-linked list.
      */
-    static class JobNode {
+    static class JobNode<S> {
 
-        /** The index in the original input (in increasing deadline order). */
+        /**
+         * The index in the original input (in increasing deadline order).
+         */
         int index;
 
-        /** The processing time of this job */
+        /**
+         * The processing time of this job
+         */
         int p;
 
-        /** The deadline of this job */
-        int d;
+        /**
+         * The deadline of this job
+         */
+        S d;
 
-        /** The next job currently linked to */
+        /**
+         * The next job currently linked to
+         */
         JobNode next;
 
-        public JobNode(int index, int p, int d) {
+        public JobNode(int index, int p, S d) {
             this.index = index;
             this.p = p;
             this.d = d;

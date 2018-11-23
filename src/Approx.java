@@ -3,74 +3,86 @@ import java.util.Comparator;
 
 public class Approx {
 
-
     /**
      * The original problem data
      */
     private int[][] jobs;
-    private float[][] jobsScaled;
 
     private float epsilon;
 
     public Approx(ProblemInstance instance, float epsilon) {
 
-        jobs = instance.getJobs();
+        this.jobs = instance.getJobs();
+
         this.epsilon = epsilon;
 
         // Earliest Due Date order
-        Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
-
+        Arrays.sort(this.jobs, new SortByDeadline()); // O(n log n)
     }
 
+    /**
+     * Given EDD order, calculate the maximum tardiness
+     */
     public int getTmax() {
-        int n = jobs.length;
-        int t = 0;
-        int Tmax = 0;
+        int completionTime = 0;
+        int maxTardiness = 0;
 
-        for (int i = 0; i < n; i++) {
-            t += jobs[i][0];
-            Tmax = Math.max(Tmax, t - jobs[i][1]);
+        for (int[] job : jobs) {
+            completionTime += job[0];
+
+            maxTardiness = Math.max(maxTardiness, completionTime - job[1]);
         }
 
-        return Tmax;
+        return maxTardiness;
     }
 
+    /**
+     * Given a list of job indices, compute the total tardiness of that sequence
+     */
+    public int computeTotalTardiness(int[] sequence) {
+        int completionTime = 0;
+        int totalTardiness = 0;
+
+        for(int index: sequence) {
+            completionTime += jobs[index][0];
+
+            totalTardiness += Math.max(0, completionTime - jobs[index][1]);
+        }
+
+        return totalTardiness;
+    }
+
+    /**
+     * Calculate the total tardiness on this problem instance
+     */
     public int calculateTardiness() throws Exception {
 
-        int n = jobs.length;
-        int Tmax = getTmax();
+        int maxTardiness = getTmax();
 
-        if (Tmax == 0)
+        if (maxTardiness == 0)
             return 0;
 
-        float K = Tmax * 2 * epsilon / (n * (n + 1));
+        // Compute K value according to Lawler (1982)
+        int n = jobs.length;
+        float K = maxTardiness * 2 * epsilon / (n * (n + 1));
 
-        jobsScaled = new float[n][2];
-
+        // Scale all jobs
+        float[][] jobsScaled = new float[n][2];
         for (int i = 0; i < n; i++) {
-            jobsScaled[i] = new float[]{ (float) Math.floor(jobs[i][0] / K), (jobs[i][1] / K) };
+            jobsScaled[i] = new float[]{
+                    (float) Math.floor(jobs[i][0] / K), // pi' = Floor( pi/K )
+                    (jobs[i][1] / K) // di' = di / K
+            };
         }
 
-        long t0 = System.nanoTime();
-
-        DynamicSequence dyn = new DynamicSequence(jobsScaled);
+        // Run the exact algorithm on the scaled jobs
+        DynamicSequence dyn = new DynamicSequence(jobsScaled, true);
         int[] seq = dyn.calculateSequence();
 
-        long t1 = System.nanoTime();
-        long time = (t1 - t0) / 1000000;
-        System.out.println("- Time: " + time);
-
-        int t = 0;
-        int T = 0;
-        for (int i = 0; i < n; i++) {
-            int index = seq[i];
-            t += jobs[index][0];
-            T += Math.max(0, t - jobs[index][1]);
-        }
-        return T;
+        // Return the total tardiness of the resulting sequence
+        return computeTotalTardiness(seq);
 
     }
-
 
     /**
      * Sort the 2D jobs array by deadline (2nd element of each pair)

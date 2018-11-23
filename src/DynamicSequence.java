@@ -17,6 +17,8 @@ public class DynamicSequence {
      */
     private MetricsBag metrics;
 
+    private boolean maintainSequence;
+
     /**
      * Store all calculated results for sub-problems (i,j,k,t)
      */
@@ -25,124 +27,116 @@ public class DynamicSequence {
 
 
     public DynamicSequence(float[][] jobs) {
+        this(jobs, false);
+    }
+
+    public DynamicSequence(float[][] jobs, boolean maintainSequence) {
 
         this.jobs = jobs;
         store = new Store(jobs.length, (float) -1);
-        indexStore = new Store(jobs.length, -1);
+
+        if(maintainSequence)
+            indexStore = new Store(jobs.length, -1);
+
         metrics = new MetricsBag();
+
+        this.maintainSequence = maintainSequence;
 
         Arrays.sort(jobs, new SortByDeadline()); // O(n log n)
     }
 
-    public int[] calculateSequence() throws Exception {
+    /** Calculate the total Tardiness of this problem instance */
+    public float calculateTardiness() throws Exception {
 
-        float original = calculateTardinessX();
+        // Create a list of all jobs
+        JobList<Float> list = JobList.fromArray(jobs);
 
+        // Return the total tardiness
+        return calculateTardiness(list, 0, 0);
 
-        int[] seq = new int[jobs.length];
-        JobListDecimal list = JobListDecimal.fromArray(jobs);
-        reconstructSequence(list, 0, 0, seq);
-
-//        System.out.println("Original: " + original);
-
-        return seq;
     }
 
-    public int[] reconstructSequence(JobListDecimal list, int t, int p0, int[] seq) throws Exception {
+    /** Calculate the sequence with the lowest tardiness on this problem instance */
+    public int[] calculateSequence() throws Exception {
+
+        if(!maintainSequence)
+            throw new Exception("Sequence was not maintained, initialize with maintainSequence: true");
+
+        // First let the tardiness computation run to fill the store
+        calculateTardiness();
+
+        // Reconstruct the sequence from the cached results.
+        return reconstructSequence();
+
+    }
+
+    /** Reconstruct the sequence after computation is done */
+    private int[] reconstructSequence() throws Exception {
+        int[] sequence = new int[jobs.length];
+
+        JobList list = JobList.fromArray(jobs);
+        reconstructSequence(list, 0, 0, sequence);
+
+        return sequence;
+    }
+
+    /**
+     * Reconstruct a subset of the original job-list, starting at time t and index p0.
+     * Put everything in-place in the provided sequence array.
+     *
+     * @param list The subset of the jobs to reconstruct the sequence from
+     * @param t The starting time of these jobs
+     * @param p0 The starting index within the sequence
+     * @param seq The sequence to fill
+     * @return The sequence
+     * @throws Exception
+     */
+    private int[] reconstructSequence(JobList list, int t, int p0, int[] seq) throws Exception {
 
         if (list.length == 0) {
             return seq;
         }
 
-//        System.out.println(String.format("Recon list: %s .. %s @ p0: %s", list.getI(), list.getJ(), p0));
+        // If only one job in the list, put it at position p0
+        if (list.length == 1) {
+            seq[p0] = list.start.index;
+            return seq;
+        }
 
         int i = list.start.index;
         int j = list.end.index;
 
-        int originalLength = list.length;
+        // Extract the job with the largest processing time from the list
+        int k = list.extractMaxP();
 
+        // Fetch the optimal position for k given this list
+        int deltaOfK = indexStore.get(i, j, k, t);
 
-        // Extract the largest k from the list
-        int kPrime = list.extractMaxP();
-
-
-        if (list.length == 0) {
-//            System.out.println(String.format("%s -> %s", p0, kPrime));
-            if(seq[p0]> 0) {
-                throw new Exception( "Overwrite..");
-            }
-            seq[p0] = kPrime;
-            return seq;
-        }
-
-        // Fetch the optimal position for kPrime given this list
-        int deltaOfKPrime = indexStore.get(i, j, kPrime, t);
-
-//        System.out.println(String.format("k: %s, delta: %s, p0: %s", kPrime, deltaOfKPrime, p0));
-
-        if (deltaOfKPrime < 0)
-            System.out.println("NEG!");
-
-        // Split the list at that position
-        JobListDecimal right = list.split(kPrime +1);
+        // Split the list at k
+        JobList right = list.split(k + 1);
 
         // Move over d elements
-        for(int x  = 0; x < deltaOfKPrime; x++){
+        // NOTE: we cannot directly split the list at (k + 1 + delta) since our delta means
+        // the number of position shifts within the list, which may differ from the original
+        // job indices.
+        for (int x = 0; x < deltaOfK; x++) {
             list.push(right.removeFirst());
         }
 
-//        System.out.println(String.format("%s .. %s | %s .. %s ", list.getI(), list.getJ(), right.getI(), right.getJ()));
+        // Put k in that position (shifted delta to the right from its original position)
+        int indexOfK = p0 + list.length;
+        seq[indexOfK] = k;
 
-        // Put K in that position
-//        int index = p0 + list.length + deltaOfKPrime;
-        int index = p0 + list.length;
-        if(seq[index]> 0) {
-            throw new Exception( "Overwrite..");
-        }
-        seq[index] = kPrime;
+        int leftCompletionTime = t + list.totalP + (int) jobs[k][0];
 
-//        System.out.println(String.format("%s -> %s", index, kPrime));
+        // Compute the new starting position for the elements in the right list.
+        int rightStartingPosition = p0 + list.length + 1;
 
-        int t1 = t + list.totalP + (int) jobs[kPrime][0];
-        int p1 = p0+ originalLength - right.length;
-
-        // Recursively reconstruct the left and right
+        // Recursively reconstruct the left and right parts of the list without k
         reconstructSequence(list, t, p0, seq);
-        reconstructSequence(right, t1, p1, seq);
+        reconstructSequence(right, leftCompletionTime, rightStartingPosition, seq);
 
         return seq;
-    }
-
-
-    public float calculateTardiness() throws Exception {
-        boolean fromSequence = true;
-
-        if (!fromSequence) {
-            return calculateTardinessX();
-
-        } else {
-
-            // Create a list of all jobs
-            int[] seq = calculateSequence();
-
-            int t = 0;
-            int T = 0;
-            for (int i = 0; i < jobs.length; i++) {
-                int index = seq[i];
-                t += jobs[index][0];
-                T += Math.max(0, t - jobs[index][1]);
-            }
-            return T;
-        }
-    }
-
-    private float calculateTardinessX() throws Exception {
-
-        // Create a list of all jobs
-        JobListDecimal list = JobListDecimal.fromArray(jobs);
-
-        return calculateTardiness(list, 0, 0);
-
     }
 
     /**
@@ -150,7 +144,7 @@ public class DynamicSequence {
      * <p>
      * Note: depth is only passed for performance analysis.
      */
-    public float calculateTardiness(JobListDecimal list, int t, int depth) throws Exception {
+    public float calculateTardiness(JobList list, int t, int depth) throws Exception {
 
         metrics.calls++;
         metrics.depth = Math.max(metrics.depth, depth);
@@ -187,7 +181,7 @@ public class DynamicSequence {
         // Split the list at k', results in:
         // - list: the left side of the split
         // - right: the right side of the split
-        JobListDecimal right = list.split(kPrime + 1); // Runs O(n)
+        JobList right = list.split(kPrime + 1); // Runs O(n)
 
         // Original length of the list
         int originalLength = right.length;
@@ -225,8 +219,6 @@ public class DynamicSequence {
             //   after all iterations.
             if (right.length > 0)
                 list.push(right.removeFirst()); // Runs O(1)
-            else if(d != originalLength)
-                throw new Exception("wha"); // TODO Remove
 
         }
 
@@ -235,7 +227,10 @@ public class DynamicSequence {
 
         // Store the result for this computation, except the root (k = -1)
         store.set(i, j, kPrime, t, lowestTardiness);
-        indexStore.set(i, j, kPrime, t, /*kPrime +*/ bestD);
+
+        // We store the number of elements k' was moved to the right.
+        if(maintainSequence)
+            indexStore.set(i, j, kPrime, t, bestD);
 
         return lowestTardiness;
     }
@@ -247,55 +242,13 @@ public class DynamicSequence {
         }
     }
 
-    class Result {
-        public int k;
-        public float tardiness;
-        //        public Result left;
-//        public Result right;
-        public int[] indices;
-
-        public Result(int k, float tardiness, Result left, Result right) {
-            this.k = k;
-            this.tardiness = tardiness;
-//            this.left = left;
-//            this.right = right;
-            this.indices = this.toArray(k, left, right);
-        }
-
-//        public int[] toArray() {
-//            int[] l = this.left == null ? new int[0] : this.left.toArray();
-//            int[] r = this.right == null ? new int[0] : this.right.toArray();
-//            int[] out = new int[l.length + r.length + 1];
-//            for(int i = 0; i < l.length; i++) {
-//                out[i] = l[i];
-//            }
-//            for(int i = 0; i < r.length; i++) {
-//                out[l.length + 1 + i] = r[i];
-//            }
-//            out[l.length] = k;
-//            return out;
-//        }
-
-        public int[] toArray(int k, Result leftRes, Result rightRes) {
-            int[] left = leftRes == null ? new int[0] : leftRes.indices;
-            int[] right = rightRes == null ? new int[0] : rightRes.indices;
-            int[] out = new int[left.length + right.length + 1];
-            for (int i = 0; i < left.length; i++) {
-                out[i] = left[i];
-            }
-            for (int i = 0; i < right.length; i++) {
-                out[left.length + 1 + i] = right[i];
-            }
-            out[left.length] = k;
-            return out;
-        }
-    }
-
     /**
      * Caching of computations is done using a 3 dimensional array
      * of HashMaps. The dimensions are `i`, `j` and `k` which range
      * from 0 to n (number of jobs). The time `t` can range from
      * 0 to n * pMax (the largest processing time).
+     *
+     * @param <T> The type of value to be stored.
      */
     class Store<T> {
 
