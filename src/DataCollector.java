@@ -22,10 +22,11 @@ public class DataCollector {
             "BestFirst-runtime",
             "BestFirst-tardiness"       };
 
-    private String outputFileName = "testoutput.csv";
+    private String outputFileName;
     private String inputFileName = "data/provided-answers.txt";
 
-    public DataCollector() {
+    public DataCollector(String outputFileName) {
+        this.outputFileName = outputFileName;
         LinkedList<String> queue = fillFileQueue();
 
         new File(outputFileName).delete();
@@ -65,51 +66,66 @@ public class DataCollector {
                     filenameParts[3]
                             .substring(1, filenameParts[3].length() - 4));
 
-            if (problemInstance.getNumJobs() > 70) continue;
+            if (problemInstance.getNumJobs() > 80) continue;
+
+
 
             Callable<String[]> runDynamic = () -> {
+                System.out.println(filename + ": Started processing dynamic");
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Dynamic(problemInstance.copy()).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
+                System.out.println(filename + ": Finished programming dynamic");
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE01 = () -> {
+                System.out.println(filename + ": Started processing e01");
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Approx(problemInstance.copy(), 0.1f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
+                System.out.println(filename + ": Finished processing e01");
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE02 = () -> {
+                System.out.println(filename + ": Started processing e02");
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Approx(problemInstance.copy(), 0.2f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
+                System.out.println(filename + ": Finished processing e02");
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runApproxE03 = () -> {
+                System.out.println(filename + ": Started processing e03");
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Approx(problemInstance.copy(), 0.3f).calculateTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
+                System.out.println(filename + ": Finished processing e03");
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runGreedy = () -> {
+                System.out.println(filename + ": Started processing greedy");
                 long startingTime = System.currentTimeMillis();
                 int tardiness = new Greedy(problemInstance.copy()).getSchedule().getTardiness();
                 long processingTime = System.currentTimeMillis() - startingTime;
+                System.out.println(filename + ": Finished processing greedy");
                 return new String[] {"" + processingTime, "" + tardiness};
             };
             Callable<String[]> runBestFirst = () -> {
+                System.out.println(filename + ": Started processing bestFirst");
                 try {
                     if (problemInstance.getNumJobs() <= 10) {
                         long startingTime = System.currentTimeMillis();
                         int tardiness = new BestFirst(problemInstance.copy()).getSchedule().getTardiness();
                         long processingTime = System.currentTimeMillis() - startingTime;
+                        System.out.println(filename + ": Finished processing bestFirst");
                         return new String[]{"" + processingTime, "" + tardiness};
                     } else {
+                        System.out.println(filename + ": Finished processing bestFirst");
                         return new String[]{"NaN", "NaN"};
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Thread.currentThread().interrupt();
+                    System.out.println(filename + ": Finished processing bestFirst");
                     return new String[]{"NaN", "NaN"};
                 }
             };
@@ -223,6 +239,8 @@ public class DataCollector {
 
 
     public static void main(String[] args) {
-        new DataCollector();
+        for (int i = 1; i <= 10; i++) {
+            new DataCollector("testoutput" + i + ".csv");
+        }
     }
 }

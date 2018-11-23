@@ -48,7 +48,7 @@ public class Approx {
         jobsScaled = new float[n][2];
 
         for (int i = 0; i < n; i++) {
-            jobsScaled[i] = new float[]{ (float) Math.floor(jobs[i][0] / K), (jobs[i][1] / K) };
+            jobsScaled[i] = new float[]{ (float) Math.max(Math.floor(jobs[i][0] / K),1), (jobs[i][1] / K) };
         }
 
         long t0 = System.nanoTime();
