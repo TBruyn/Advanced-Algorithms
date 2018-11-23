@@ -68,8 +68,8 @@ public class TestComputation {
 //        Thread.sleep(2000);
         if (doDynamic) {
             long t0 = System.nanoTime();
-            int result = runApprox(instance, (float)0.3);
-//            int result = runDynamicSq(instance);
+//            int result = runApprox(instance, (float)0.3);
+            int result = runDynamicSq(instance);
 //            int result = runDynamic(instance);
             long t1 = System.nanoTime();
             long time = (t1 - t0) / 1000000;
