@@ -69,10 +69,7 @@ public class Approx {
         // Scale all jobs
         float[][] jobsScaled = new float[n][2];
         for (int i = 0; i < n; i++) {
-            jobsScaled[i] = new float[]{
-                    (float) Math.floor(jobs[i][0] / K), // pi' = Floor( pi/K )
-                    (jobs[i][1] / K) // di' = di / K
-            };
+            jobsScaled[i] = new float[]{ (float) Math.max(Math.floor(jobs[i][0] / K),1), (jobs[i][1] / K) };
         }
 
         // Run the exact algorithm on the scaled jobs
@@ -89,7 +86,7 @@ public class Approx {
      */
     class SortByDeadline implements Comparator<int[]> {
         public int compare(int[] a, int[] b) {
-            return a[1] - b[1];
+            return Integer.compare(a[1], b[1]);
         }
     }
 
